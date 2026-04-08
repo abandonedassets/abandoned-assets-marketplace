@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Seller Dashboard</title>
+</head>
+<body>
+    <h1>Seller Dashboard</h1>
+    <h2>List a New Property</h2>
+    <form id="propertyForm">
+        <input type="text" id="address" placeholder="Address" required><br>
+        <input type="text" id="city" placeholder="City" required><br>
+        <input type="text" id="state" placeholder="State" required><br>
+        <input type="text" id="zip" placeholder="Zip" required><br>
+        <input type="number" id="price" placeholder="Price" required><br>
+        <select id="property_type">
+            <option value="house">House</option>
+            <option value="vacant_land">Vacant Land</option>
+            <option value="multi_unit">Multi-unit</option>
+        </select><br>
+        <button type="submit">Submit Property</button>
+    </form>
+    <h2>My Listings</h2>
+    <ul id="listings"></ul>
+    <script>
+        async function loadListings() {
+            const res = await fetch('/api/properties');
+            const listings = await res.json();
+            const ul = document.getElementById('listings');
+            ul.innerHTML = listings.map(l => `<li>${l.address}, ${l.city} - $${l.price} (${l.status})</li>`).join('');
+        }
+        document.getElementById('propertyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const body = {
+                address: document.getElementById('address').value,
+                city: document.getElementById('city').value,
+                state: document.getElementById('state').value,
+                zip: document.getElementById('zip').value,
+                price: document.getElementById('price').value,
+                property_type: document.getElementById('property_type').value
+            };
+            await fetch('/api/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            loadListings();
+        });
+        loadListings();
+    </script>
+</body>
+</html>

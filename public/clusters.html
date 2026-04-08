@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Premium Clusters</title>
+</head>
+<body>
+    <h1>Premium Clusters</h1>
+    <div id="clusters"></div>
+    <script>
+        async function loadClusters() {
+            const res = await fetch('/api/clusters');
+            const clusters = await res.json();
+            const div = document.getElementById('clusters');
+            div.innerHTML = clusters.map(c => `
+                <div>
+                    <h3>${c.name}</h3>
+                    <p>${c.city}, ${c.state}</p>
+                    <p>Price: ${c.total_price}</p>
+                    <p>${c.description}</p>
+                </div>
+            `).join('');
+        }
+        loadClusters();
+    </script>
+</body>
+</html>

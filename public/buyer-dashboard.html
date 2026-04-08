@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buyer Dashboard</title>
+</head>
+<body>
+    <h1>Buyer Dashboard</h1>
+    <h2>My Interests</h2>
+    <ul id="interests"></ul>
+    <script>
+        async function loadInterests() {
+            const res = await fetch('/api/my-interests');
+            const interests = await res.json();
+            const ul = document.getElementById('interests');
+            ul.innerHTML = interests.map(i => `<li>${i.address}, ${i.city} - Status: ${i.status}</li>`).join('');
+        }
+        loadInterests();
+    </script>
+</body>
+</html>

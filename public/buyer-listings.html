@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Property Listings</title>
+</head>
+<body>
+    <h1>Available Properties</h1>
+    <div id="listings"></div>
+    <script>
+        async function loadListings() {
+            const res = await fetch('/api/properties');
+            const listings = await res.json();
+            const div = document.getElementById('listings');
+            div.innerHTML = listings.map(l => `
+                <div>
+                    <h3>${l.address}</h3>
+                    <p>${l.city}, ${l.state} - $${l.price}</p>
+                    ${l.address_blurred ? '<button onclick="expressInterest(' + l.id + ')">Express Interest to Unlock</button>' : '<p>Full Access</p>'}
+                </div>
+            `).join('');
+        }
+        async function expressInterest(propertyId) {
+            const res = await fetch('/api/interests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ propertyId })
+            });
+            if (res.ok) {
+                alert('Interest expressed! Admin will review.');
+                loadListings();
+            }
+        }
+        loadListings();
+    </script>
+</body>
+</html>

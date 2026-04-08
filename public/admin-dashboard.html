@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <h2>Pending Properties</h2>
+    <ul id="pendingProperties"></ul>
+    <h2>Pending Interests</h2>
+    <ul id="pendingInterests"></ul>
+    <script>
+        async function loadAdminData() {
+            // In a real app, you'd have specific admin endpoints to list pending items.
+            // For now, we'll just show the structure.
+        }
+        async function approveProperty(id) {
+            await fetch('/api/admin/approve-seller/' + id, { method: 'POST' });
+            loadAdminData();
+        }
+        async function approveInterest(id) {
+            await fetch('/api/admin/approve-interest/' + id, { method: 'POST' });
+            loadAdminData();
+        }
+        loadAdminData();
+    </script>
+</body>
+</html>
