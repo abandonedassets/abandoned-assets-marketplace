@@ -1,36 +1,175 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Property Listings</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Property Listings — Abandoned Assets Marketplace</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-    <h1>Available Properties</h1>
-    <div id="listings"></div>
-    <script>
-        async function loadListings() {
-            const res = await fetch('/api/properties');
-            const listings = await res.json();
-            const div = document.getElementById('listings');
-            div.innerHTML = listings.map(l => `
-                <div>
-                    <h3>${l.address}</h3>
-                    <p>${l.city}, ${l.state} - $${l.price}</p>
-                    ${l.address_blurred ? '<button onclick="expressInterest(' + l.id + ')">Express Interest to Unlock</button>' : '<p>Full Access</p>'}
-                </div>
-            `).join('');
-        }
-        async function expressInterest(propertyId) {
-            const res = await fetch('/api/interests', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ propertyId })
-            });
-            if (res.ok) {
-                alert('Interest expressed! Admin will review.');
-                loadListings();
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <div class="brand-icon">A</div>
+      <div>Abandoned Assets<span class="brand-sub">Marketplace · 2026</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/buyer/listings">Listings</a></li>
+      <li><a href="/buyer/dashboard">My Deals</a></li>
+      <li><a href="/clusters">Clusters</a></li>
+      <li><a href="/logout" class="btn-nav">Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="page">
+    <div class="section-header">
+      <div>
+        <h2>Available Properties</h2>
+        <p style="color:var(--muted-lt);font-size:0.88rem;margin-top:0.2rem;">Browse exclusive off-market wholesale deals</p>
+      </div>
+      <span id="listingCount" class="badge badge-gold" style="font-size:0.8rem;padding:0.3rem 0.8rem;"></span>
+    </div>
+
+    <div id="alertArea"></div>
+
+    <!-- Filter bar -->
+    <div class="card card-body" style="margin-bottom:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+      <div style="flex:1;min-width:140px;">
+        <label style="font-size:0.75rem;font-weight:700;color:var(--muted-lt);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:0.3rem;">State</label>
+        <input type="text" id="filterState" placeholder="e.g. OH" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border-lt);border-radius:var(--radius);font-size:0.9rem;" />
+      </div>
+      <div style="flex:1;min-width:160px;">
+        <label style="font-size:0.75rem;font-weight:700;color:var(--muted-lt);text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:0.3rem;">Property Type</label>
+        <select id="filterType" style="width:100%;padding:0.5rem 0.75rem;border:1px solid var(--border-lt);border-radius:var(--radius);font-size:0.9rem;">
+          <option value="">All Types</option>
+          <option value="house">House</option>
+          <option value="vacant_land">Vacant Land</option>
+          <option value="multi_unit">Multi-Unit</option>
+        </select>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="applyFilters()">Apply Filter</button>
+      <button class="btn btn-sm" style="background:#e8e3da;color:var(--text-dark);" onclick="clearFilters()">Clear</button>
+    </div>
+
+    <div id="listings" class="grid grid-3">
+      <div class="empty-state" style="grid-column:1/-1;">
+        <div class="icon">⏳</div><p>Loading properties...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Abandoned Assets Marketplace</p>
+  </footer>
+
+  <script>
+    let allListings = [];
+
+    function showToast(msg, type = '') {
+      const tc = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast ' + type;
+      t.textContent = msg;
+      tc.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    function formatPrice(p) {
+      if (!p) return 'Price on request';
+      return '$' + Number(p).toLocaleString();
+    }
+
+    function typeLabel(t) {
+      return { house: 'House', vacant_land: 'Vacant Land', multi_unit: 'Multi-Unit' }[t] || t || 'Property';
+    }
+
+    function renderCard(l) {
+      const blurred = l.address_blurred;
+      return `
+        <div class="card">
+          <div class="prop-img">🏚</div>
+          <div class="card-body">
+            <div class="prop-meta">
+              <span class="badge badge-${l.status === 'active' ? 'active' : 'pending'}">${l.status || 'active'}</span>
+              <span class="badge" style="background:#f0ece4;color:var(--muted-lt);">${typeLabel(l.property_type)}</span>
+            </div>
+            <div class="prop-price">${formatPrice(l.price)}</div>
+            <div class="prop-addr">
+              ${blurred
+                ? '🔒 <span class="badge badge-blurred">Address Hidden Until Approved</span>'
+                : `📍 ${l.address}, ${l.city}, ${l.state} ${l.zip || ''}`
+              }
+            </div>
+            <div style="font-size:0.82rem;color:var(--muted-lt);margin-bottom:0.85rem;">
+              📍 ${l.city || '—'}, ${l.state || '—'}
+            </div>
+            ${blurred
+              ? `<button class="btn btn-rust btn-sm" style="width:100%;" onclick="expressInterest(${l.id})">🔓 Express Interest to Unlock</button>`
+              : `<div class="alert alert-success" style="margin:0;font-size:0.82rem;padding:0.6rem 0.85rem;">✅ Full access granted</div>`
             }
+          </div>
+        </div>`;
+    }
+
+    function renderListings(data) {
+      const div = document.getElementById('listings');
+      const cnt = document.getElementById('listingCount');
+      cnt.textContent = `${data.length} propert${data.length === 1 ? 'y' : 'ies'}`;
+      if (!data.length) {
+        div.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="icon">🏚</div><p>No properties match your filters.</p></div>`;
+        return;
+      }
+      div.innerHTML = data.map(renderCard).join('');
+    }
+
+    async function loadListings() {
+      try {
+        const res = await fetch('/api/properties');
+        if (!res.ok) throw new Error('Failed');
+        allListings = await res.json();
+        renderListings(allListings);
+      } catch {
+        document.getElementById('listings').innerHTML =
+          `<div class="alert alert-error" style="grid-column:1/-1;">Could not load listings. Please refresh.</div>`;
+      }
+    }
+
+    function applyFilters() {
+      const state = document.getElementById('filterState').value.trim().toUpperCase();
+      const type  = document.getElementById('filterType').value;
+      renderListings(allListings.filter(l => {
+        if (state && l.state && l.state.toUpperCase() !== state) return false;
+        if (type  && l.property_type !== type) return false;
+        return true;
+      }));
+    }
+
+    function clearFilters() {
+      document.getElementById('filterState').value = '';
+      document.getElementById('filterType').value = '';
+      renderListings(allListings);
+    }
+
+    async function expressInterest(propertyId) {
+      try {
+        const res = await fetch('/api/interests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ propertyId })
+        });
+        if (res.ok) {
+          showToast('Interest submitted! Admin will review your request.', 'success');
+          loadListings();
+        } else {
+          const d = await res.json().catch(() => ({}));
+          showToast(d.error || 'Could not submit interest.', 'error');
         }
-        loadListings();
-    </script>
+      } catch { showToast('Network error. Please try again.', 'error'); }
+    }
+
+    loadListings();
+  </script>
 </body>
 </html>
