@@ -1,28 +1,211 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Admin Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — Abandoned Assets Marketplace</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-    <h1>Admin Dashboard</h1>
-    <h2>Pending Properties</h2>
-    <ul id="pendingProperties"></ul>
-    <h2>Pending Interests</h2>
-    <ul id="pendingInterests"></ul>
-    <script>
-        async function loadAdminData() {
-            // In a real app, you'd have specific admin endpoints to list pending items.
-            // For now, we'll just show the structure.
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <div class="brand-icon">A</div>
+      <div>Abandoned Assets<span class="brand-sub">Admin Panel · 2026</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/admin/dashboard">Dashboard</a></li>
+      <li><a href="/clusters">Clusters</a></li>
+      <li><a href="/logout" class="btn-nav">Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="page">
+    <div class="section-header">
+      <div>
+        <h2>Admin Dashboard</h2>
+        <p style="color:var(--muted-lt);font-size:0.88rem;margin-top:0.2rem;">Manage listings, interests, and deal approvals</p>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="loadAll()">↻ Refresh</button>
+    </div>
+
+    <!-- Stat boxes -->
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:2rem;">
+      <div class="stat-box"><div class="stat-num" id="statProps">—</div><div class="stat-lbl">Total Properties</div></div>
+      <div class="stat-box"><div class="stat-num" id="statPending">—</div><div class="stat-lbl">Pending Review</div></div>
+      <div class="stat-box"><div class="stat-num" id="statInterests">—</div><div class="stat-lbl">Interests Submitted</div></div>
+      <div class="stat-box"><div class="stat-num" id="statClusters">—</div><div class="stat-lbl">Active Clusters</div></div>
+    </div>
+
+    <div id="alertArea"></div>
+
+    <!-- Pending Properties -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div style="background:var(--navy);padding:1rem 1.25rem;border-bottom:3px solid var(--gold);display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="color:#fff;font-size:1rem;font-weight:700;">Pending Properties</h3>
+        <span id="pendingCount" class="badge badge-gold"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Address</th><th>City, State</th><th>Price</th><th>Type</th><th>Status</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="pendingProperties">
+            <tr><td colspan="7" style="text-align:center;color:var(--muted-lt);padding:2rem;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pending Interests -->
+    <div class="card">
+      <div style="background:var(--navy);padding:1rem 1.25rem;border-bottom:3px solid var(--gold);display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="color:#fff;font-size:1rem;font-weight:700;">Pending Interests</h3>
+        <span id="interestCount" class="badge badge-gold"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Buyer</th><th>Property ID</th><th>Status</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="pendingInterests">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted-lt);padding:2rem;">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Abandoned Assets Marketplace — Admin Panel</p>
+  </footer>
+
+  <script>
+    function showToast(msg, type = '') {
+      const tc = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast ' + type;
+      t.textContent = msg;
+      tc.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    function statusBadge(s) {
+      const map = { active: 'badge-active', pending: 'badge-pending', approved: 'badge-approved' };
+      return `<span class="badge ${map[s] || 'badge-pending'}">${s || 'pending'}</span>`;
+    }
+
+    function typeLabel(t) {
+      return { house: 'House', vacant_land: 'Vacant Land', multi_unit: 'Multi-Unit' }[t] || t || '—';
+    }
+
+    async function loadProperties() {
+      try {
+        const res = await fetch('/api/properties');
+        const props = await res.json();
+        document.getElementById('statProps').textContent = props.length;
+        const pending = props.filter(p => p.status === 'pending');
+        document.getElementById('statPending').textContent = pending.length;
+        document.getElementById('pendingCount').textContent = `${pending.length} pending`;
+        const tbody = document.getElementById('pendingProperties');
+        if (!props.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted-lt);padding:2rem;">No properties yet.</td></tr>`;
+          return;
         }
-        async function approveProperty(id) {
-            await fetch('/api/admin/approve-seller/' + id, { method: 'POST' });
-            loadAdminData();
+        tbody.innerHTML = props.map(p => `
+          <tr>
+            <td style="color:var(--muted-lt);">#${p.id}</td>
+            <td style="font-weight:600;">${p.address || '—'}</td>
+            <td>${p.city || '—'}, ${p.state || '—'}</td>
+            <td style="font-weight:700;color:var(--navy);">$${Number(p.price || 0).toLocaleString()}</td>
+            <td>${typeLabel(p.property_type)}</td>
+            <td>${statusBadge(p.status)}</td>
+            <td>
+              ${p.status === 'pending'
+                ? `<button class="btn btn-success btn-sm" onclick="approveProperty(${p.id})">✓ Approve</button>`
+                : `<span style="color:var(--muted-lt);font-size:0.82rem;">—</span>`
+              }
+            </td>
+          </tr>`).join('');
+      } catch {
+        document.getElementById('pendingProperties').innerHTML =
+          `<tr><td colspan="7" style="text-align:center;color:var(--danger);">Failed to load. Refresh to retry.</td></tr>`;
+      }
+    }
+
+    async function loadInterests() {
+      try {
+        const res = await fetch('/api/interests');
+        if (!res.ok) throw new Error();
+        const interests = await res.json();
+        document.getElementById('statInterests').textContent = interests.length;
+        const pending = interests.filter(i => i.status === 'pending');
+        document.getElementById('interestCount').textContent = `${pending.length} pending`;
+        const tbody = document.getElementById('pendingInterests');
+        if (!interests.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--muted-lt);padding:2rem;">No interests submitted yet.</td></tr>`;
+          return;
         }
-        async function approveInterest(id) {
-            await fetch('/api/admin/approve-interest/' + id, { method: 'POST' });
-            loadAdminData();
-        }
-        loadAdminData();
-    </script>
+        tbody.innerHTML = interests.map(i => `
+          <tr>
+            <td style="color:var(--muted-lt);">#${i.id}</td>
+            <td>${i.buyer_name || i.buyer_id || '—'}</td>
+            <td>#${i.property_id}</td>
+            <td>${statusBadge(i.status)}</td>
+            <td>
+              ${i.status === 'pending'
+                ? `<button class="btn btn-success btn-sm" onclick="approveInterest(${i.id})">✓ Approve</button>`
+                : `<span style="color:var(--muted-lt);font-size:0.82rem;">—</span>`
+              }
+            </td>
+          </tr>`).join('');
+      } catch {
+        document.getElementById('pendingInterests').innerHTML =
+          `<tr><td colspan="5" style="text-align:center;color:var(--muted-lt);padding:2rem;">No interest data available.</td></tr>`;
+      }
+    }
+
+    async function loadClusters() {
+      try {
+        const res = await fetch('/api/clusters');
+        if (!res.ok) throw new Error();
+        const clusters = await res.json();
+        const active = clusters.filter(c => c.status === 'active').length;
+        document.getElementById('statClusters').textContent = active;
+      } catch {
+        document.getElementById('statClusters').textContent = '—';
+      }
+    }
+
+    async function approveProperty(id) {
+      try {
+        const res = await fetch('/api/admin/approve-seller/' + id, { method: 'POST' });
+        if (res.ok) { showToast('Property approved!', 'success'); loadAll(); }
+        else showToast('Approval failed.', 'error');
+      } catch { showToast('Network error.', 'error'); }
+    }
+
+    async function approveInterest(id) {
+      try {
+        const res = await fetch('/api/admin/approve-interest/' + id, { method: 'POST' });
+        if (res.ok) { showToast('Interest approved!', 'success'); loadAll(); }
+        else showToast('Approval failed.', 'error');
+      } catch { showToast('Network error.', 'error'); }
+    }
+
+    function loadAll() {
+      loadProperties();
+      loadInterests();
+      loadClusters();
+    }
+
+    loadAll();
+  </script>
 </body>
 </html>
