@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compliance Kit — Abandoned Assets Marketplace</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body { background: var(--navy); color: var(--text-light); }
+    .ck-hero {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 2rem;
+      text-align: center;
+    }
+    .ck-hero .eyebrow {
+      display: inline-block;
+      background: rgba(212,160,23,0.12);
+      border: 1px solid rgba(212,160,23,0.35);
+      color: var(--gold);
+      padding: 0.35rem 1rem;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+    .ck-hero h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 900; color: #fff; margin-bottom: 0.75rem; }
+    .ck-hero h1 span { color: var(--gold); }
+    .ck-hero p { color: rgba(255,255,255,0.55); font-size: 1rem; line-height: 1.7; margin-bottom: 2rem; }
+
+    .trust-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(39,174,96,0.12);
+      border: 1px solid rgba(39,174,96,0.3);
+      color: #81c784;
+      padding: 0.5rem 1.1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 2rem;
+    }
+
+    .ck-box {
+      max-width: 680px;
+      margin: 0 auto 3rem;
+      padding: 0 1.5rem;
+    }
+    .ck-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .ck-card-header {
+      background: rgba(212,160,23,0.1);
+      border-bottom: 2px solid var(--gold);
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .ck-card-header h2 { font-size: 1.2rem; color: #fff; font-weight: 800; }
+    .ck-price { font-size: 2rem; font-weight: 900; color: var(--gold); }
+
+    .ck-card-body { padding: 2rem; }
+    .ck-features { list-style: none; margin-bottom: 1.75rem; }
+    .ck-features li {
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.92rem;
+      color: rgba(255,255,255,0.8);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+    }
+    .ck-features li:last-child { border-bottom: none; }
+    .ck-features li .check { color: var(--gold); font-weight: 700; flex-shrink: 0; margin-top: 0.05rem; }
+
+    .ck-states {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .ck-states h4 { font-size: 0.78rem; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .ck-states p { font-size: 0.82rem; color: rgba(255,255,255,0.45); line-height: 1.6; }
+
+    .btn-buy { width: 100%; text-align: center; display: block; padding: 1rem; font-size: 1.05rem; }
+    .secure-note { text-align: center; font-size: 0.78rem; color: rgba(255,255,255,0.3); margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <div class="brand-icon">A</div>
+      <div>Abandoned Assets<span class="brand-sub">Marketplace · 2026</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/buyer/listings">Listings</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/logout" class="btn-nav">Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="ck-hero">
+    <div class="eyebrow">One-Time Purchase · Instant Access</div>
+    <h1>The <span>Compliance Kit</span><br>Every Wholesaler Needs</h1>
+    <p>Stop guessing about wholesaling laws. Get attorney-reviewed compliance documents for all 50 states — for a one-time $5 fee. No subscription, no upsell, just the docs.</p>
+    <div class="trust-badge">✅ Attorney-Reviewed Compliance Data</div>
+  </div>
+
+  <div class="ck-box">
+    <div class="ck-card">
+      <div class="ck-card-header">
+        <h2>Compliance Kit</h2>
+        <div class="ck-price">$5 <span style="font-size:0.9rem;font-weight:400;color:rgba(255,255,255,0.4);">one-time</span></div>
+      </div>
+      <div class="ck-card-body">
+        <ul class="ck-features">
+          <li><span class="check">✓</span> Full state-by-state wholesaling compliance guide (all 50 states)</li>
+          <li><span class="check">✓</span> Attorney-reviewed wholesale purchase agreement template</li>
+          <li><span class="check">✓</span> Assignment of Contract form (assignable deals)</li>
+          <li><span class="check">✓</span> Non-Circumvention Agreement (NCA) template</li>
+          <li><span class="check">✓</span> Seller disclosure checklist by state</li>
+          <li><span class="check">✓</span> Instant PDF download — access forever</li>
+        </ul>
+
+        <div class="ck-states">
+          <h4>Covers All 50 States Including High-Risk Markets</h4>
+          <p>Ohio, Texas, Florida, Georgia, Illinois, California, New York, Michigan, Pennsylvania, Arizona — and every other state with specific wholesaling disclosure requirements.</p>
+        </div>
+
+        <a href="/checkout/compliance-kit" class="btn btn-gold btn-buy">Buy Now — $5 →</a>
+        <p class="secure-note">🔒 Secure checkout powered by Stripe. Instant access after payment.</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
