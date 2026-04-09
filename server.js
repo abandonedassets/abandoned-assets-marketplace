@@ -116,7 +116,13 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Welcome to Abandoned Assets Marketplace. Please use /auto-login?email=...&name=...&state=...');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
 });
 
 app.listen(port, () => {
