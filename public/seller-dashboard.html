@@ -1,47 +1,198 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Seller Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seller Dashboard — Abandoned Assets Marketplace</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-    <h1>Seller Dashboard</h1>
-    <h2>List a New Property</h2>
-    <form id="propertyForm">
-        <input type="text" id="address" placeholder="Address" required><br>
-        <input type="text" id="city" placeholder="City" required><br>
-        <input type="text" id="state" placeholder="State" required><br>
-        <input type="text" id="zip" placeholder="Zip" required><br>
-        <input type="number" id="price" placeholder="Price" required><br>
-        <select id="property_type">
-            <option value="house">House</option>
-            <option value="vacant_land">Vacant Land</option>
-            <option value="multi_unit">Multi-unit</option>
-        </select><br>
-        <button type="submit">Submit Property</button>
-    </form>
-    <h2>My Listings</h2>
-    <ul id="listings"></ul>
-    <script>
-        async function loadListings() {
-            const res = await fetch('/api/properties');
-            const listings = await res.json();
-            const ul = document.getElementById('listings');
-            ul.innerHTML = listings.map(l => `<li>${l.address}, ${l.city} - $${l.price} (${l.status})</li>`).join('');
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <div class="brand-icon">A</div>
+      <div>Abandoned Assets<span class="brand-sub">Marketplace · 2026</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/seller/dashboard">My Listings</a></li>
+      <li><a href="/clusters">Clusters</a></li>
+      <li><a href="/logout" class="btn-nav">Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="page">
+    <div class="section-header">
+      <div>
+        <h2>Seller Dashboard</h2>
+        <p style="color:var(--muted-lt);font-size:0.88rem;margin-top:0.2rem;">Manage your property listings</p>
+      </div>
+    </div>
+
+    <div id="alertArea"></div>
+
+    <!-- Two-column layout -->
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;align-items:start;" class="seller-layout">
+
+      <!-- Submit form -->
+      <div class="card">
+        <div style="background:var(--navy);padding:1rem 1.25rem;border-bottom:3px solid var(--gold);">
+          <h3 style="color:#fff;font-size:1rem;font-weight:700;">+ List a New Property</h3>
+        </div>
+        <div class="card-body">
+          <form id="propertyForm">
+            <div class="form-group">
+              <label>Street Address</label>
+              <input type="text" id="address" placeholder="123 Main St" required />
+            </div>
+            <div class="form-group">
+              <label>City</label>
+              <input type="text" id="city" placeholder="Cleveland" required />
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+              <div class="form-group">
+                <label>State</label>
+                <input type="text" id="state" placeholder="OH" maxlength="2" required />
+              </div>
+              <div class="form-group">
+                <label>ZIP Code</label>
+                <input type="text" id="zip" placeholder="44103" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Asking Price ($)</label>
+              <input type="number" id="price" placeholder="85000" required />
+            </div>
+            <div class="form-group">
+              <label>Property Type</label>
+              <select id="property_type">
+                <option value="house">House</option>
+                <option value="vacant_land">Vacant Land</option>
+                <option value="multi_unit">Multi-Unit</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-rust" style="width:100%;margin-top:0.5rem;">Submit Property →</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Listings -->
+      <div>
+        <div class="section-header" style="margin-bottom:1rem;">
+          <h3 style="font-size:1.1rem;color:var(--navy);font-weight:700;">My Listings</h3>
+          <span id="listingCount" class="badge badge-gold"></span>
+        </div>
+        <div id="listings">
+          <div class="empty-state"><div class="icon">⏳</div><p>Loading your listings...</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Abandoned Assets Marketplace</p>
+  </footer>
+
+  <style>
+    @media (max-width: 700px) {
+      .seller-layout { grid-template-columns: 1fr !important; }
+    }
+  </style>
+
+  <script>
+    function showToast(msg, type = '') {
+      const tc = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast ' + type;
+      t.textContent = msg;
+      tc.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+
+    function statusBadge(s) {
+      const map = { active: 'badge-active', pending: 'badge-pending', approved: 'badge-approved' };
+      return `<span class="badge ${map[s] || 'badge-pending'}">${s || 'pending'}</span>`;
+    }
+
+    function typeLabel(t) {
+      return { house: 'House', vacant_land: 'Vacant Land', multi_unit: 'Multi-Unit' }[t] || t || 'Property';
+    }
+
+    async function loadListings() {
+      try {
+        const res = await fetch('/api/properties');
+        const listings = await res.json();
+        const cnt = document.getElementById('listingCount');
+        cnt.textContent = `${listings.length} listing${listings.length !== 1 ? 's' : ''}`;
+        const div = document.getElementById('listings');
+        if (!listings.length) {
+          div.innerHTML = `<div class="empty-state"><div class="icon">🏚</div><p>No listings yet. Submit your first property.</p></div>`;
+          return;
         }
-        document.getElementById('propertyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const body = {
-                address: document.getElementById('address').value,
-                city: document.getElementById('city').value,
-                state: document.getElementById('state').value,
-                zip: document.getElementById('zip').value,
-                price: document.getElementById('price').value,
-                property_type: document.getElementById('property_type').value
-            };
-            await fetch('/api/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-            loadListings();
+        div.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Address</th>
+                  <th>City, State</th>
+                  <th>Price</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${listings.map(l => `
+                  <tr>
+                    <td style="font-weight:600;">${l.address || '—'}</td>
+                    <td>${l.city || '—'}, ${l.state || '—'}</td>
+                    <td style="font-weight:700;color:var(--navy);">$${Number(l.price || 0).toLocaleString()}</td>
+                    <td>${typeLabel(l.property_type)}</td>
+                    <td>${statusBadge(l.status)}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      } catch {
+        document.getElementById('listings').innerHTML =
+          `<div class="alert alert-error">Could not load listings. Please refresh.</div>`;
+      }
+    }
+
+    document.getElementById('propertyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.textContent = 'Submitting...';
+      btn.disabled = true;
+      const body = {
+        address:       document.getElementById('address').value,
+        city:          document.getElementById('city').value,
+        state:         document.getElementById('state').value,
+        zip:           document.getElementById('zip').value,
+        price:         document.getElementById('price').value,
+        property_type: document.getElementById('property_type').value
+      };
+      try {
+        const res = await fetch('/api/properties', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
         });
-        loadListings();
-    </script>
+        if (res.ok) {
+          showToast('Property submitted successfully!', 'success');
+          e.target.reset();
+          loadListings();
+        } else {
+          const d = await res.json().catch(() => ({}));
+          showToast(d.error || 'Submission failed. Try again.', 'error');
+        }
+      } catch { showToast('Network error. Please try again.', 'error'); }
+      btn.textContent = 'Submit Property →';
+      btn.disabled = false;
+    });
+
+    loadListings();
+  </script>
 </body>
 </html>
