@@ -42,11 +42,12 @@ app.use(async (req, res, next) => {
 });
 
 // Import route modules
-const autoLoginRouter = require('./routes/auto-login');
-const propertyApiRouter = require('./routes/property-api');
+const autoLoginRouter    = require('./routes/auto-login');
+const propertyApiRouter  = require('./routes/property-api');
 const interestsApiRouter = require('./routes/interests-api');
-const adminApiRouter = require('./routes/admin-api');
-const clusterApiRouter = require('./routes/cluster-api');
+const adminApiRouter     = require('./routes/admin-api');
+const clusterApiRouter   = require('./routes/cluster-api');
+const stripeRouter       = require('./routes/stripe-checkout');
 
 // Register API routes
 app.use('/auth', autoLoginRouter);
@@ -54,6 +55,7 @@ app.use('/api', propertyApiRouter);
 app.use('/api', interestsApiRouter);
 app.use('/api', adminApiRouter);
 app.use('/api', clusterApiRouter);
+app.use('/checkout', stripeRouter);
 
 // HTML pages (simple static routes with role checks)
 const isAuthenticated = (req, res, next) => {
@@ -117,6 +119,26 @@ app.post('/login', async (req, res) => {
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Monetization pages (public — no auth required to view pricing)
+app.get('/pricing', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pricing.html'));
+});
+app.get('/compliance-kit', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'compliance-kit.html'));
+});
+app.get('/purchase-success', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'purchase-success.html'));
+});
+
+// Current user info (used by purchase-success page)
+app.get('/api/me', (req, res) => {
+  if (req.user) {
+    res.json({ id: req.user.id, name: req.user.name, email: req.user.email, role: req.user.role });
+  } else {
+    res.json({});
+  }
 });
 
 app.get('/logout', (req, res) => {
