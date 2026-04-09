@@ -5,9 +5,76 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Property Listings — Abandoned Assets Marketplace</title>
   <link rel="stylesheet" href="/style.css" />
+  <style>
+    /* Activity ticker */
+    .ticker-bar {
+      background: rgba(212,160,23,0.08);
+      border-bottom: 1px solid rgba(212,160,23,0.18);
+      padding: 0.5rem 1rem;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .ticker-inner { display: inline-block; animation: ticker 30s linear infinite; }
+    .ticker-inner span { margin-right: 4rem; font-size: 0.78rem; color: var(--gold); font-weight: 600; }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* Upgrade banner */
+    .upgrade-banner {
+      background: var(--navy);
+      border-bottom: 3px solid var(--gold);
+      padding: 2rem 1.5rem;
+    }
+    .upgrade-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .up-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+    }
+    .up-card.featured {
+      border: 1.5px solid var(--gold);
+      background: rgba(212,160,23,0.05);
+    }
+    .up-name { font-size: 0.7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gold); margin-bottom: 0.3rem; }
+    .up-price { font-size: 1.5rem; font-weight: 900; color: #fff; margin-bottom: 0.2rem; }
+    .up-anchor { font-size: 0.8rem; color: rgba(255,255,255,0.3); text-decoration: line-through; }
+    .up-features { list-style: none; margin: 0.75rem 0 1rem; flex: 1; }
+    .up-features li { font-size: 0.8rem; color: rgba(255,255,255,0.65); padding: 0.2rem 0; display: flex; gap: 0.4rem; }
+    .up-features li .ck { color: var(--gold); }
+    .scarcity-xs { font-size: 0.72rem; color: #ff8a80; font-weight: 700; margin-bottom: 0.6rem; }
+    .up-btn { display: block; text-align: center; padding: 0.55rem; font-size: 0.82rem; border-radius: 6px; font-weight: 700; text-decoration: none; }
+    .up-btn-gold { background: var(--gold); color: var(--navy); }
+    .up-btn-gold:hover { background: var(--gold-lt); }
+    .up-btn-rust { background: var(--rust); color: #fff; }
+    .up-btn-rust:hover { background: var(--rust-dk); }
+    .up-btn-outline { border: 1px solid rgba(255,255,255,0.25); color: rgba(255,255,255,0.6); }
+    .up-btn-outline:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+
+    /* Upgraded success alert */
+    .upgraded-alert {
+      background: rgba(39,174,96,0.1);
+      border: 1px solid rgba(39,174,96,0.3);
+      border-radius: 6px;
+      padding: 0.75rem 1.25rem;
+      color: #81c784;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+  </style>
 </head>
 <body>
 
+  <!-- NAV -->
   <nav class="nav">
     <a href="/" class="nav-brand">
       <div class="brand-icon">A</div>
@@ -17,11 +84,77 @@
       <li><a href="/buyer/listings">Listings</a></li>
       <li><a href="/buyer/dashboard">My Deals</a></li>
       <li><a href="/clusters">Clusters</a></li>
+      <li><a href="/pricing" style="color:var(--gold);font-weight:700;">Upgrade →</a></li>
       <li><a href="/logout" class="btn-nav">Logout</a></li>
     </ul>
   </nav>
 
+  <!-- ACTIVITY TICKER -->
+  <div class="ticker-bar">
+    <div class="ticker-inner">
+      <span>🔥 Mike from Dayton just closed a deal</span>
+      <span>✅ Sarah from Atlanta unlocked Pro access</span>
+      <span>🏚 New property listed in Cleveland, OH</span>
+      <span>💼 James from Houston just closed a deal</span>
+      <span>⚡ 3 buyers expressed interest in the last hour</span>
+      <span>🔥 Mike from Dayton just closed a deal</span>
+      <span>✅ Sarah from Atlanta unlocked Pro access</span>
+      <span>🏚 New property listed in Cleveland, OH</span>
+      <span>💼 James from Houston just closed a deal</span>
+      <span>⚡ 3 buyers expressed interest in the last hour</span>
+    </div>
+  </div>
+
+  <!-- UPGRADE BANNER -->
+  <div class="upgrade-banner">
+    <div style="text-align:center;margin-bottom:1.25rem;">
+      <span style="font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);">Unlock More Deals</span>
+      <h3 style="color:#fff;font-size:1.1rem;font-weight:800;margin-top:0.25rem;">Choose Your Access Level</h3>
+    </div>
+    <div class="upgrade-grid">
+      <!-- Free -->
+      <div class="up-card">
+        <div class="up-name">Free</div>
+        <div class="up-price">$0</div>
+        <ul class="up-features">
+          <li><span class="ck">✓</span> State compliance checker</li>
+          <li><span class="ck">✓</span> Browse listings</li>
+          <li><span class="ck">✓</span> 3 interests/mo</li>
+        </ul>
+        <a href="/pricing" class="up-btn up-btn-outline">View All Plans</a>
+      </div>
+      <!-- Compliance Kit -->
+      <div class="up-card">
+        <div class="up-name">Compliance Kit</div>
+        <div class="up-price">$5 <span style="font-size:0.8rem;font-weight:400;color:rgba(255,255,255,0.4);">one-time</span></div>
+        <ul class="up-features">
+          <li><span class="ck">✓</span> All 50-state compliance docs</li>
+          <li><span class="ck">✓</span> Attorney-reviewed contracts</li>
+          <li><span class="ck">✓</span> NCA + assignment forms</li>
+        </ul>
+        <a href="/checkout/compliance-kit" class="up-btn up-btn-gold">Buy Now →</a>
+      </div>
+      <!-- Pro -->
+      <div class="up-card featured">
+        <div class="up-name">Pro Subscription</div>
+        <div class="up-anchor">$299/mo</div>
+        <div class="up-price">$49<span style="font-size:0.85rem;font-weight:400;color:rgba(255,255,255,0.45);">/mo</span></div>
+        <div class="scarcity-xs">🔥 Only 7 spots left this week</div>
+        <ul class="up-features">
+          <li><span class="ck">✓</span> Full buyer network access</li>
+          <li><span class="ck">✓</span> Unlimited skip trace credits</li>
+          <li><span class="ck">✓</span> Priority deal alerts</li>
+          <li><span class="ck">✓</span> Compliance Kit included</li>
+        </ul>
+        <a href="/checkout/pro" class="up-btn up-btn-rust">Start Pro Trial →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN PAGE -->
   <div class="page">
+    <div class="upgraded-alert" id="upgradedAlert">🎉 Purchase successful! Your access has been upgraded.</div>
+
     <div class="section-header">
       <div>
         <h2>Available Properties</h2>
@@ -66,6 +199,11 @@
 
   <script>
     let allListings = [];
+
+    // Show success alert if redirected from checkout
+    if (new URLSearchParams(window.location.search).get('upgraded') === 'true') {
+      document.getElementById('upgradedAlert').style.display = 'block';
+    }
 
     function showToast(msg, type = '') {
       const tc = document.getElementById('toastContainer');
