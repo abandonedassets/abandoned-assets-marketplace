@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Purchase Successful — Abandoned Assets Marketplace</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body { background: var(--navy); color: var(--text-light); }
+
+    .success-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem;
+      text-align: center;
+    }
+    .success-icon {
+      width: 80px; height: 80px;
+      background: rgba(39,174,96,0.15);
+      border: 2px solid rgba(39,174,96,0.4);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 1.5rem;
+    }
+    .success-wrap h1 { font-size: 2rem; font-weight: 900; color: #fff; margin-bottom: 0.75rem; }
+    .success-wrap h1 span { color: var(--gold); }
+    .success-wrap .sub { color: rgba(255,255,255,0.5); font-size: 1rem; margin-bottom: 2.5rem; line-height: 1.7; }
+
+    /* Upsell card */
+    .upsell-card {
+      background: rgba(212,160,23,0.06);
+      border: 2px solid var(--gold);
+      border-radius: 10px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+    .upsell-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.5rem;
+    }
+    .upsell-card h2 { font-size: 1.3rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; }
+    .upsell-card .upsell-price {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .upsell-card .upsell-price .new { font-size: 2rem; font-weight: 900; color: var(--gold); }
+    .upsell-card .upsell-price .old { font-size: 1rem; color: rgba(255,255,255,0.35); text-decoration: line-through; }
+    .upsell-card .upsell-price .period { font-size: 0.85rem; color: rgba(255,255,255,0.45); }
+    .upsell-desc { font-size: 0.88rem; color: rgba(255,255,255,0.6); margin-bottom: 1.25rem; line-height: 1.6; }
+    .upsell-features { list-style: none; margin-bottom: 1.5rem; }
+    .upsell-features li {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.75);
+      padding: 0.3rem 0;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .upsell-features li .check { color: var(--gold); }
+    .scarcity-sm {
+      background: rgba(192,57,43,0.15);
+      border: 1px solid rgba(192,57,43,0.3);
+      border-radius: 6px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.78rem;
+      color: #ff8a80;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+    .btn-upsell { width: 100%; text-align: center; display: block; padding: 0.9rem; font-size: 1rem; }
+    .no-thanks { display: block; text-align: center; margin-top: 0.75rem; font-size: 0.8rem; color: rgba(255,255,255,0.3); text-decoration: none; }
+    .no-thanks:hover { color: rgba(255,255,255,0.6); }
+
+    .back-btn { margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <div class="brand-icon">A</div>
+      <div>Abandoned Assets<span class="brand-sub">Marketplace · 2026</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/buyer/listings">Listings</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/logout" class="btn-nav">Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="success-wrap">
+    <div class="success-icon">✅</div>
+    <h1>You're All Set, <span id="firstName">Wholesaler</span>!</h1>
+    <p class="sub">Your Compliance Kit is ready. Check your email for the download link. You now have attorney-reviewed wholesale contracts and compliance docs for all 50 states.</p>
+
+    <!-- ONE-CLICK UPSELL -->
+    <div class="upsell-card">
+      <div class="upsell-eyebrow">⚡ One-Time Offer — Expires When You Leave</div>
+      <h2>Upgrade to Pro for 50% Off Your First Month</h2>
+      <div class="upsell-price">
+        <span class="new">$24.50</span>
+        <span class="old">$49</span>
+        <span class="period">first month, then $49/mo</span>
+      </div>
+      <p class="upsell-desc">You already have the compliance docs. Now get the full buyer network, unlimited skip traces, and priority deal alerts — at half price for your first month.</p>
+      <div class="scarcity-sm">🔥 Only 7 spots left this week at this price</div>
+      <ul class="upsell-features">
+        <li><span class="check">✓</span> Full buyer network access</li>
+        <li><span class="check">✓</span> Unlimited skip trace credits</li>
+        <li><span class="check">✓</span> Priority deal alerts (before free users)</li>
+        <li><span class="check">✓</span> Cancel anytime</li>
+      </ul>
+      <a href="/checkout/pro?coupon=UPSELL50" class="btn btn-rust btn-upsell">Yes — Upgrade for $24.50 →</a>
+      <a href="/buyer/listings" class="no-thanks">No thanks, I'll pay full price later</a>
+    </div>
+
+    <a href="/buyer/listings" class="btn btn-outline-white back-btn">← Back to Listings</a>
+  </div>
+
+  <script>
+    // Show first name from session if available
+    fetch('/api/me').then(r => r.json()).then(u => {
+      if (u && u.name) {
+        const first = u.name.split(' ')[0];
+        document.getElementById('firstName').textContent = first;
+      }
+    }).catch(() => {});
+  </script>
+</body>
+</html>
