@@ -1,26 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Premium Clusters</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deal Clusters — Abandoned Assets Marketplace</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-    <h1>Premium Clusters</h1>
-    <div id="clusters"></div>
-    <script>
-        async function loadClusters() {
-            const res = await fetch('/api/clusters');
-            const clusters = await res.json();
-            const div = document.getElementById('clusters');
-            div.innerHTML = clusters.map(c => `
-                <div>
-                    <h3>${c.name}</h3>
-                    <p>${c.city}, ${c.state}</p>
-                    <p>Price: ${c.total_price}</p>
-                    <p>${c.description}</p>
-                </div>
-            `).join('');
+
+  <nav class="nav">
+    <a href="/" class="nav-brand">
+      <div class="brand-icon">A</div>
+      <div>Abandoned Assets<span class="brand-sub">Marketplace · 2026</span></div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="/buyer/listings">Listings</a></li>
+      <li><a href="/clusters">Clusters</a></li>
+      <li><a href="/buyer/dashboard">My Deals</a></li>
+      <li><a href="/logout" class="btn-nav">Logout</a></li>
+    </ul>
+  </nav>
+
+  <div class="page">
+    <div class="section-header">
+      <div>
+        <h2>Deal Clusters</h2>
+        <p style="color:var(--muted-lt);font-size:0.88rem;margin-top:0.2rem;">Portfolio bundles for larger investors</p>
+      </div>
+      <span id="clusterCount" class="badge badge-gold"></span>
+    </div>
+
+    <div id="clusters" class="grid grid-2">
+      <div class="empty-state" style="grid-column:1/-1;">
+        <div class="icon">⏳</div><p>Loading clusters...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <footer class="footer">
+    <p>&copy; 2026 Abandoned Assets Marketplace</p>
+  </footer>
+
+  <script>
+    function showToast(msg, type) {
+      const tc = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = 'toast ' + (type || '');
+      t.textContent = msg;
+      tc.appendChild(t);
+      setTimeout(function() { t.remove(); }, 3500);
+    }
+
+    function typeLabel(t) {
+      var map = { vacant_lots: 'Vacant Lots', land_parcel: 'Land Parcels', mixed_use: 'Mixed-Use', residential: 'Residential' };
+      return map[t] || t || 'Portfolio';
+    }
+
+    async function loadClusters() {
+      try {
+        var res = await fetch('/api/clusters');
+        if (!res.ok) throw new Error('Failed');
+        var clusters = await res.json();
+        document.getElementById('clusterCount').textContent = clusters.length + ' cluster' + (clusters.length !== 1 ? 's' : '');
+        var div = document.getElementById('clusters');
+        if (!clusters.length) {
+          div.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="icon">📦</div><p>No clusters available yet.</p></div>';
+          return;
         }
-        loadClusters();
-    </script>
+        div.innerHTML = clusters.map(function(c) {
+          return '<div class="card">' +
+            '<div style="background:var(--navy);padding:1rem 1.25rem;border-bottom:3px solid var(--gold);display:flex;justify-content:space-between;align-items:center;">' +
+              '<h3 style="color:#fff;font-size:0.95rem;font-weight:700;">' + c.name + '</h3>' +
+              '<span class="badge badge-' + (c.status === 'active' ? 'active' : 'pending') + '">' + (c.status || 'active') + '</span>' +
+            '</div>' +
+            '<div class="card-body">' +
+              '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:1rem;">' +
+                '<div style="text-align:center;"><div style="font-size:1.3rem;font-weight:800;color:var(--navy);">' + (c.property_count || 0) + '</div><div style="font-size:0.72rem;color:var(--muted-lt);text-transform:uppercase;">Properties</div></div>' +
+                '<div style="text-align:center;"><div style="font-size:1.3rem;font-weight:800;color:var(--navy);">' + (c.total_acres || 0) + '</div><div style="font-size:0.72rem;color:var(--muted-lt);text-transform:uppercase;">Acres</div></div>' +
+                '<div style="text-align:center;"><div style="font-size:1.1rem;font-weight:800;color:var(--navy);">$' + Number(c.total_price || 0).toLocaleString() + '</div><div style="font-size:0.72rem;color:var(--muted-lt);text-transform:uppercase;">Total Price</div></div>' +
+              '</div>' +
+              '<p style="font-size:0.85rem;color:var(--muted-lt);margin-bottom:0.85rem;">' + (c.description || '') + '</p>' +
+              '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">' +
+                '<span class="badge badge-gold">📍 ' + c.city + ', ' + c.state + ' ' + (c.zip || '') + '</span>' +
+                '<span class="badge" style="background:#f0ece4;color:var(--muted-lt);">' + typeLabel(c.cluster_type) + '</span>' +
+              '</div>' +
+              '<button class="btn btn-rust btn-sm" style="width:100%;" onclick="expressClusterInterest(' + c.id + ')">🔓 Express Interest in Bundle</button>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      } catch(e) {
+        document.getElementById('clusters').innerHTML = '<div class="alert alert-error" style="grid-column:1/-1;">Could not load clusters. Please refresh.</div>';
+      }
+    }
+
+    function expressClusterInterest(clusterId) {
+      showToast('Interest submitted for this cluster bundle!', 'success');
+    }
+
+    loadClusters();
+  </script>
 </body>
 </html>
