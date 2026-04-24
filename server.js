@@ -48,6 +48,7 @@ const interestsApiRouter = require('./routes/interests-api');
 const adminApiRouter     = require('./routes/admin-api');
 const clusterApiRouter   = require('./routes/cluster-api');
 const stripeRouter       = require('./routes/stripe-checkout');
+const dealsApiRouter     = require('./routes/deals-api');
 
 // Register API routes
 app.use('/auth', autoLoginRouter);
@@ -56,6 +57,7 @@ app.use('/api', interestsApiRouter);
 app.use('/api', adminApiRouter);
 app.use('/api', clusterApiRouter);
 app.use('/checkout', stripeRouter);
+app.use('/api', dealsApiRouter);
 
 // HTML pages (simple static routes with role checks)
 const isAuthenticated = (req, res, next) => {

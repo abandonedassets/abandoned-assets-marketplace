@@ -26,7 +26,10 @@
         <h2>Admin Dashboard</h2>
         <p style="color:var(--muted-lt);font-size:0.88rem;margin-top:0.2rem;">Manage listings, interests, and deal approvals</p>
       </div>
-      <button class="btn btn-gold btn-sm" onclick="loadAll()">↻ Refresh</button>
+      <div style="display:flex;gap:0.5rem;">
+          <button id="btnExecute" class="btn btn-success btn-sm" onclick="executeDealsCycle()">⚡ Execute Deals (Live)</button>
+          <button class="btn btn-gold btn-sm" onclick="loadAll()">↻ Refresh</button>
+        </div>
     </div>
 
     <!-- Stat boxes -->
@@ -197,6 +200,32 @@
         if (res.ok) { showToast('Interest approved!', 'success'); loadAll(); }
         else showToast('Approval failed.', 'error');
       } catch { showToast('Network error.', 'error'); }
+    }
+
+    async function executeDealsCycle() {
+      const btn = document.getElementById('btnExecute');
+      const originalText = btn.textContent;
+      
+      btn.disabled = true;
+      btn.textContent = 'Executing...';
+      
+      try {
+        const res = await fetch('/api/v1/deals/execute-cycle', { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.ok) {
+          showToast(`Success! Deal ID: ${data.dealId}`, 'success');
+          alert(`Deal Executed Successfully!\n\nDeal ID: ${data.dealId}\nProperty: ${data.property}\nBuyers Contacted: ${data.buyersContacted}\nStatus: ${data.sendStatus}`);
+          loadAll();
+        } else {
+          showToast(data.error || 'Execution failed.', 'error');
+        }
+      } catch (err) {
+        showToast('Network error during execution.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
     }
 
     function loadAll() {
