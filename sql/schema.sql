@@ -106,3 +106,16 @@ CREATE TABLE email_logs (
     subject TEXT,
     sent_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Deal locks (first-lock-wins mechanism)
+CREATE TABLE deal_locks (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER REFERENCES properties(id),
+    buyer_id INTEGER REFERENCES users(id),
+    locked_at TIMESTAMP DEFAULT NOW(),
+    expires_at TIMESTAMP,
+    UNIQUE(property_id)
+);
+
+CREATE INDEX idx_deal_locks_property ON deal_locks(property_id);
+CREATE INDEX idx_deal_locks_buyer ON deal_locks(buyer_id);

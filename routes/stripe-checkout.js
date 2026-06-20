@@ -9,6 +9,7 @@
  *    STRIPE_SECRET_KEY=sk_live_...
  *    STRIPE_COMPLIANCE_PRICE_ID=price_...
  *    STRIPE_PRO_PRICE_ID=price_...
+ *    STRIPE_WEBHOOK_SECRET=whsec_...
  * 3. Redeploy — checkout will be fully live.
  *
  * Until then, the /checkout/* routes redirect to the pricing page
@@ -17,6 +18,7 @@
 
 const express = require('express');
 const router  = express.Router();
+const crypto = require('crypto');
 
 const STRIPE_KEY          = process.env.STRIPE_SECRET_KEY;
 const COMPLIANCE_PRICE_ID = process.env.STRIPE_COMPLIANCE_PRICE_ID;
@@ -32,6 +34,34 @@ function getBaseUrl(req) {
   const proto = req.headers['x-forwarded-proto'] || req.protocol;
   return `${proto}://${req.get('host')}`;
 }
+
+// ── Webhook endpoint (raw body required for Stripe signature verification) ──
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!endpointSecret) {
+    console.warn('Stripe webhook secret not configured');
+    return res.status(400).json({ error: 'Webhook secret not configured' });
+  }
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+  }
+
+  // Handle successful payment
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    console.log(`✓ Payment successful: ${session.id}`);
+    // TODO: Update DB with order status, send confirmation email
+  }
+
+  res.json({ received: true });
+});
 
 // ── Compliance Kit ($5 one-time) ──────────────────────────────────────────
 router.get('/compliance-kit', async (req, res) => {

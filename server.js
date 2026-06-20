@@ -15,6 +15,18 @@ const pool = new Pool({
 
 app.set('db', pool);
 
+// Import route modules
+const autoLoginRouter    = require('./routes/auto-login');
+const propertyApiRouter  = require('./routes/property-api');
+const interestsApiRouter = require('./routes/interests-api');
+const adminApiRouter     = require('./routes/admin-api');
+const clusterApiRouter   = require('./routes/cluster-api');
+const stripeRouter       = require('./routes/stripe-checkout');
+const dealsApiRouter     = require('./routes/deals-api');
+
+// Stripe webhook BEFORE express.json() (requires raw body)
+app.use('/webhook/stripe', stripeRouter);
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -40,15 +52,6 @@ app.use(async (req, res, next) => {
   }
   next();
 });
-
-// Import route modules
-const autoLoginRouter    = require('./routes/auto-login');
-const propertyApiRouter  = require('./routes/property-api');
-const interestsApiRouter = require('./routes/interests-api');
-const adminApiRouter     = require('./routes/admin-api');
-const clusterApiRouter   = require('./routes/cluster-api');
-const stripeRouter       = require('./routes/stripe-checkout');
-const dealsApiRouter     = require('./routes/deals-api');
 
 // Register API routes
 app.use('/auth', autoLoginRouter);
