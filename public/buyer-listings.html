@@ -245,7 +245,8 @@
             </div>
             ${blurred
               ? `<button class="btn btn-rust btn-sm" style="width:100%;" onclick="expressInterest(${l.id})">🔓 Express Interest to Unlock</button>`
-              : `<div class="alert alert-success" style="margin:0;font-size:0.82rem;padding:0.6rem 0.85rem;">✅ Full access granted</div>`
+              : `<div class="alert alert-success" style="margin:0 0 0.65rem;font-size:0.82rem;padding:0.6rem 0.85rem;">✅ Full access granted</div>
+                 <button class="btn btn-gold btn-sm" style="width:100%;" onclick="purchaseAssignment(${l.id}, this)">Purchase Assignment</button>`
             }
           </div>
         </div>`;
@@ -305,6 +306,27 @@
           showToast(d.error || 'Could not submit interest.', 'error');
         }
       } catch { showToast('Network error. Please try again.', 'error'); }
+    }
+
+    async function purchaseAssignment(propertyId, button) {
+      const originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Starting checkout...';
+
+      try {
+        const res = await fetch(`/checkout/assignment/${propertyId}`, { method: 'POST' });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data.checkout_url) {
+          throw new Error(data.error || 'Could not start assignment checkout.');
+        }
+
+        window.location.href = data.checkout_url;
+      } catch (err) {
+        showToast(err.message || 'Checkout error. Please try again.', 'error');
+        button.disabled = false;
+        button.textContent = originalText;
+      }
     }
 
     loadListings();
