@@ -107,15 +107,43 @@ CREATE TABLE email_logs (
     sent_at TIMESTAMP DEFAULT NOW()
 );
 
--- Deal locks (first-lock-wins mechanism)
-CREATE TABLE deal_locks (
+-- Execution venue support: first-lock-wins deal execution and Stripe clearing.
+CREATE TABLE IF NOT EXISTS deal_locks (
     id SERIAL PRIMARY KEY,
-    property_id INTEGER REFERENCES properties(id),
-    buyer_id INTEGER REFERENCES users(id),
-    locked_at TIMESTAMP DEFAULT NOW(),
-    expires_at TIMESTAMP,
-    UNIQUE(property_id)
+    property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+    buyer_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'locked',
+    stripe_session_id TEXT UNIQUE,
+    amount_cents INTEGER NOT NULL DEFAULT 100,
+    currency TEXT NOT NULL DEFAULT 'usd',
+    locked_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    paid_at TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL DEFAULT NOW() + INTERVAL '30 minutes',
+    released_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    CONSTRAINT deal_locks_status_check CHECK (status IN ('locked', 'paid', 'released', 'expired'))
 );
 
-CREATE INDEX idx_deal_locks_property ON deal_locks(property_id);
-CREATE INDEX idx_deal_locks_buyer ON deal_locks(buyer_id);
+CREATE UNIQUE INDEX IF NOT EXISTS deal_locks_one_active_per_property
+ON deal_locks (property_id)
+WHERE status = 'locked';
+
+CREATE INDEX IF NOT EXISTS deal_locks_buyer_idx ON deal_locks (buyer_id);
+CREATE INDEX IF NOT EXISTS deal_locks_property_idx ON deal_locks (property_id);
+CREATE INDEX IF NOT EXISTS deal_locks_stripe_session_idx ON deal_locks (stripe_session_id);
+
+ALTER TABLE properties
+ADD COLUMN IF NOT EXISTS assigned_buyer_id INTEGER,
+ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP;
+
+CREATE TABLE IF NOT EXISTS algorithm_broadcast_log (
+    id SERIAL PRIMARY KEY,
+    property_id INTEGER REFERENCES properties(id) ON DELETE SET NULL,
+    endpoint_url TEXT NOT NULL,
+    payload_hash TEXT NOT NULL,
+    http_status INTEGER,
+    response_body TEXT,
+    success BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
