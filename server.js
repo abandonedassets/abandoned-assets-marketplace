@@ -27,6 +27,35 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static assets (CSS/JS/images). Will not interfere with API routes.
 const publicPath = path.join(__dirname, 'public');
+
+// Diagnostic logs added to debug express.static pathing
+try {
+  console.log('DEBUG: process.cwd():', process.cwd());
+  console.log('DEBUG: __dirname:', __dirname);
+
+  const frontendDir = path.resolve(__dirname, 'frontend');
+  console.log('DEBUG: Resolved frontend path (expected):', frontendDir);
+
+  function listDirRecursive(dir, prefix = '') {
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      entries.forEach(e => {
+        const full = path.join(dir, e.name);
+        console.log(`${prefix}${e.name}${e.isDirectory() ? '/' : ''}`);
+        if (e.isDirectory()) listDirRecursive(full, prefix + '  ');
+      });
+    } catch (err) {
+      console.log(`DEBUG: Error reading directory "${dir}":`, err && err.message ? err.message : err);
+    }
+  }
+
+  listDirRecursive(frontendDir);
+
+  console.log('DEBUG: Resolved static path to be passed to express.static:', path.resolve(publicPath));
+} catch (err) {
+  console.log('DEBUG: Error while logging filesystem info:', err && err.message ? err.message : err);
+}
+
 app.use(express.static(publicPath, { extensions: ['html', 'htm'] }));
 
 // Session middleware
@@ -172,7 +201,7 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
 
   // Normalize and prevent path traversal
-  const safePath = path.normalize(req.path).replace(/^(\.{2}(\/|\\|$))+/, '');
+  const safePath = path.normalize(req.path).replace(/^(\.{2}(\/|\\|$))+/,'');
   const candidate = path.join(publicPath, safePath);
 
   if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
