@@ -4,37 +4,66 @@
     <meta charset="UTF-8">
     <title>ASSET_DEAL_TAPE</title>
     <style>
-        body { font-family: sans-serif; background: #000; color: #0f0; padding: 20px; }
-        .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; }
-        .btn-init { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; }
-        #vdr-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:99; justify-content:center; align-items:center; }
+        body { font-family: sans-serif; background: #000; color: #0f0; padding: 20px; margin: 0; }
+        .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; background: #111; }
+        .btn-init { background: #0f0; color: #000; border: none; padding: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        #vdr-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:99999; justify-content:center; align-items:center; }
+        .modal-content { background:#000; border:2px solid #0f0; padding:40px; color:#0f0; max-width:400px; width:90%; }
     </style>
 </head>
 <body>
+    <div style="padding: 10px; border-bottom: 1px solid #333; margin-bottom: 20px;">
+        <a href="/terminal.html" style="color:#0f0; text-decoration:none; font-family:monospace;">[TERMINAL]</a>
+    </div>
+
     <h1>// ACTIVE DEAL TAPE</h1>
     <div id="marketplace-listings">INITIALIZING FEED...</div>
+
     <div id="vdr-modal">
-        <div style="background:#000; border:1px solid #0f0; padding:40px; color:#0f0;">
+        <div class="modal-content">
             <h2 id="modal-title">ACCESS_REQ</h2>
-            <button onclick="document.getElementById('vdr-modal').style.display='none'">CLOSE</button>
+            <p style="color:#888;">STATUS: AUTHORIZATION REQUIRED</p>
+            <button class="btn-init" style="width:100%; margin-top:20px;" onclick="document.getElementById('vdr-modal').style.display='none'">CLOSE</button>
         </div>
     </div>
+
     <script>
         async function fetchFeed() {
             try {
                 const res = await fetch('/api/terminal-feed?limit=500');
+                if (!res.ok) throw new Error("HTTP_ERR");
                 const { data } = await res.json();
+                
+                if(!data || data.length === 0) {
+                    document.getElementById('marketplace-listings').innerHTML = "<p>FEED ONLINE: AWAITING INGESTION</p>";
+                    return;
+                }
+
                 document.getElementById('marketplace-listings').innerHTML = data.map(item => `
                     <div class="deal-card" data-address="${item.address}">
                         <h3>${item.address}</h3>
+                        <p style="color: #888; font-size: 14px;">Spread: ${item.delta_score}% | Basis: $${item.basis ? item.basis.toLocaleString() : 'N/A'}</p>
                         <button class="btn-init">INITIALIZE UNDERWRITING</button>
                     </div>
                 `).join('');
-            } catch(e) { document.getElementById('marketplace-listings').innerText = "CONNECTION_FAIL"; }
+            } catch(e) { 
+                document.getElementById('marketplace-listings').innerText = "CONNECTION_FAIL_RETRYING"; 
+            }
         }
+
         document.addEventListener('click', (e) => {
             if(e.target.matches('.btn-init')) {
-                document.getElementById('modal-title').innerText = "VDR: " + e.target.closest('.deal-card').dataset.address;
+                const card = e.target.closest('.deal-card');
+                document.getElementById('modal-title').innerText = "VDR: " + card.dataset.address;
+                document.getElementById('vdr-modal').style.display = 'flex';
+            }
+        });
+
+        fetchFeed(); 
+        setInterval(fetchFeed, 30000);
+    </script>
+</body>
+</html>                document.getElementById('modal-title').innerText = "VDR: " + e.target.closest('.deal-card').dataset.address;
                 document.getElementById('vdr-modal').style.display = 'flex';
             }
         });
