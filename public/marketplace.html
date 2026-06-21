@@ -2,28 +2,52 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Institutional Deal Tape | Asset Portfolio</title>
+    <title>Institutional Deal Tape</title>
     <style>
-        :root { --primary: #0f172a; --accent: #1e3a8a; --muted: #64748b; --bg: #f1f5f9; }
-        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--primary); margin: 0; padding: 20px; }
+        body { font-family: sans-serif; background: #f8fafc; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
-        
-        /* Institutional Header */
-        header { margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
-        .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-        .stat-card { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-val { font-size: 18px; font-weight: 800; margin-top: 5px; }
+        .deal-card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        #diligence-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; }
+        .modal-content { background:#fff; padding:30px; border-radius:12px; width:90%; max-width:400px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Active Deal Tape</h1>
+        <div id="marketplace-listings">Loading live feed...</div>
+    </div>
 
-        /* Deal Tape Grid */
-        .deal-tape { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .deal-card { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-        .deal-info h2 { margin: 0 0 10px 0; font-size: 18px; }
-        .metrics { display: flex; gap: 20px; font-size: 14px; }
-        
-        .cta-btn { background: var(--accent); color: #fff; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
-        
-        /* VDR Overlay */
-        #vdr-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.85); z-index:9999; justify-content:center; align-items:center; }
-        .vdr-content { background:#fff; padding:40px; border-radius
+    <div id="diligence-modal">
+        <div class="modal-content">
+            <h2 id="modal-title">Access Data Room</h2>
+            <button onclick="document.getElementById('diligence-modal').style.display='none'">Terminate</button>
+        </div>
+    </div>
+
+    <script>
+        async function fetchFeed() {
+            const res = await fetch('/api/terminal-feed?limit=500');
+            const { data } = await res.json();
+            const container = document.getElementById('marketplace-listings');
+            container.innerHTML = data.map(item => `
+                <div class="deal-card" data-address="${item.address}">
+                    <div><h3>${item.address}</h3><p>Spread: ${item.delta_score}%</p></div>
+                    <button class="cta-btn">Initialize Underwriting</button>
+                </div>
+            `).join('');
+        }
+
+        // Delegate click for VDR
+        document.addEventListener('click', (e) => {
+            if(e.target.matches('.cta-btn')) {
+                const address = e.target.closest('.deal-card').dataset.address;
+                document.getElementById('modal-title').innerText = address;
+                document.getElementById('diligence-modal').style.display = 'flex';
+            }
+        });
+
+        fetchFeed();
+        setInterval(fetchFeed, 30000);
+    </script>
+</body>
+</html>
