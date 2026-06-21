@@ -1,15 +1,28 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <meta charset="UTF-8">
+    <title>SYSTEM_TERMINAL</title>
+</head>
 <body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
-    <h1>SYSTEM_MONITOR_ONLINE</h1>
-    <div id="log"></div>
+    <div style="padding: 10px; border-bottom: 1px solid #333; margin-bottom: 20px;">
+        <a href="/marketplace" style="color:#0f0; text-decoration:none;">[RETURN_TO_MARKETPLACE]</a>
+    </div>
+    <h1>// SYSTEM_MONITOR_ONLINE</h1>
+    <pre id="log">SYNCING_DATA_STREAM...</pre>
     <script>
         async function pulse() {
-            const res = await fetch('/api/terminal-feed');
-            const data = await res.json();
-            document.getElementById('log').innerText = JSON.stringify(data, null, 2);
+            try {
+                const res = await fetch('/api/terminal-feed?limit=500');
+                if (!res.ok) throw new Error(`HTTP_ERROR_${res.status}`);
+                const data = await res.json();
+                document.getElementById('log').innerText = JSON.stringify(data, null, 2);
+            } catch (err) {
+                document.getElementById('log').innerText = `[STREAM_ERR] CRITICAL_DISCONNECT: ${err.message}\nRETRYING...`;
+            }
         }
-        setInterval(pulse, 5000); pulse();
+        setInterval(pulse, 3000); 
+        pulse();
     </script>
 </body>
 </html>
