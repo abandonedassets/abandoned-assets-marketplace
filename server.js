@@ -14,6 +14,17 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// Initialize DB connection asynchronously without blocking server startup
+(async function initDb() {
+  try {
+    const client = await pool.connect();
+    client.release();
+    console.log('INFO: Database connection verified');
+  } catch (err) {
+    console.error('WARN: Database connection verification failed (startup will continue):', err && err.message ? err.message : err);
+  }
+})();
+
 app.set('db', pool);
 
 const stripeRouter = require('./routes/stripe-checkout');
