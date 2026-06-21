@@ -2,52 +2,43 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Institutional Deal Tape</title>
+    <title>ASSET_DEAL_TAPE</title>
     <style>
-        body { font-family: sans-serif; background: #f8fafc; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .deal-card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
-        #diligence-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center; }
-        .modal-content { background:#fff; padding:30px; border-radius:12px; width:90%; max-width:400px; }
+        body { font-family: sans-serif; background: #000; color: #0f0; padding: 20px; }
+        .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; }
+        .btn-init { background: #0f0; color: #000; border: none; padding: 10px; cursor: pointer; }
+        #vdr-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:99; justify-content:center; align-items:center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Active Deal Tape</h1>
-        <div id="marketplace-listings">Loading live feed...</div>
-    </div>
-
-    <div id="diligence-modal">
-        <div class="modal-content">
-            <h2 id="modal-title">Access Data Room</h2>
-            <button onclick="document.getElementById('diligence-modal').style.display='none'">Terminate</button>
+    <h1>// ACTIVE DEAL TAPE</h1>
+    <div id="marketplace-listings">INITIALIZING FEED...</div>
+    <div id="vdr-modal">
+        <div style="background:#000; border:1px solid #0f0; padding:40px; color:#0f0;">
+            <h2 id="modal-title">ACCESS_REQ</h2>
+            <button onclick="document.getElementById('vdr-modal').style.display='none'">CLOSE</button>
         </div>
     </div>
-
     <script>
         async function fetchFeed() {
-            const res = await fetch('/api/terminal-feed?limit=500');
-            const { data } = await res.json();
-            const container = document.getElementById('marketplace-listings');
-            container.innerHTML = data.map(item => `
-                <div class="deal-card" data-address="${item.address}">
-                    <div><h3>${item.address}</h3><p>Spread: ${item.delta_score}%</p></div>
-                    <button class="cta-btn">Initialize Underwriting</button>
-                </div>
-            `).join('');
+            try {
+                const res = await fetch('/api/terminal-feed?limit=500');
+                const { data } = await res.json();
+                document.getElementById('marketplace-listings').innerHTML = data.map(item => `
+                    <div class="deal-card" data-address="${item.address}">
+                        <h3>${item.address}</h3>
+                        <button class="btn-init">INITIALIZE UNDERWRITING</button>
+                    </div>
+                `).join('');
+            } catch(e) { document.getElementById('marketplace-listings').innerText = "CONNECTION_FAIL"; }
         }
-
-        // Delegate click for VDR
         document.addEventListener('click', (e) => {
-            if(e.target.matches('.cta-btn')) {
-                const address = e.target.closest('.deal-card').dataset.address;
-                document.getElementById('modal-title').innerText = address;
-                document.getElementById('diligence-modal').style.display = 'flex';
+            if(e.target.matches('.btn-init')) {
+                document.getElementById('modal-title').innerText = "VDR: " + e.target.closest('.deal-card').dataset.address;
+                document.getElementById('vdr-modal').style.display = 'flex';
             }
         });
-
-        fetchFeed();
-        setInterval(fetchFeed, 30000);
+        fetchFeed(); setInterval(fetchFeed, 30000);
     </script>
 </body>
 </html>
