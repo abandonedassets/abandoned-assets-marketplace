@@ -1,17 +1,14 @@
 <!DOCTYPE html>
 <html>
-<head><title>Terminal</title></head>
 <body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
-    <h1>SYSTEM STATUS: ONLINE</h1>
-    <div id="feed">Connecting to feed...</div>
+    <h1>TERMINAL STATUS: ONLINE</h1>
+    <pre id="feed">Syncing...</pre>
     <script>
-        async function update() {
+        setInterval(async () => {
             const res = await fetch('/api/terminal-feed');
             const data = await res.json();
             document.getElementById('feed').innerText = JSON.stringify(data, null, 2);
-        }
-        setInterval(update, 3000);
-        update();
+        }, 3000);
     </script>
 </body>
 </html>
