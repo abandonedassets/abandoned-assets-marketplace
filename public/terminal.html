@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settlement Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #ffb000; /* Classic Amber */
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            border: 1px solid #ffb000;
+            border-bottom: 2px solid #ffb000;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 14px;
+            background-color: #0a0a0a;
+        }
+
+        .header-item {
+            display: flex;
+            gap: 8px;
+        }
+
+        .success { 
+            color: #00ff00; 
+            font-weight: bold;
+        }
+
+        .funds { 
+            color: #ffb000; 
+            font-weight: bold; 
+        }
+
+        .system {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .blink { 
+            animation: blinker 1s linear infinite; 
+        }
+
+        @keyframes blinker { 
+            50% { opacity: 0; } 
+        }
+
+        .terminal-feed {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            border: 1px solid #ffb000;
+            padding: 15px;
+            background-color: #0a0a0a;
+            box-shadow: inset 0 0 10px rgba(255, 176, 0, 0.1);
+        }
+
+        .entry { 
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        /* Scrollbar styling */
+        .terminal-feed::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-feed::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        .terminal-feed::-webkit-scrollbar-thumb {
+            background: #ffb000;
+            border-radius: 4px;
+        }
+
+        .footer {
+            border-top: 1px solid #ffb000;
+            padding-top: 10px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            .terminal-feed {
+                font-size: 12px;
+                line-height: 1.5;
+            }
+
+            .entry {
+                margin-bottom: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-item">SYSTEM STATUS: <span class="success">ONLINE</span></div>
+        <div class="header-item">INGESTION QUEUE: <span class="funds">42</span></div>
+        <div class="header-item">BALANCE: <span class="funds">$14,203.45</span></div>
+    </div>
+    
+    <div class="terminal-feed" id="feed">
+        <div class="entry">[02:11:01] <span class="system">SYSTEM:</span> Initializing autonomous clearing house...</div>
+        <div class="entry">[02:11:05] <span class="success">SUCCESS:</span> Property 412 Kilmer St ingested.</div>
+        <div class="entry">[02:11:12] <span class="funds">FUNDS:</span> $2,400.00 deposited to Escrow.</div>
+        <div class="entry">[02:11:20] <span class="success">SUCCESS:</span> Property 109 Harvard Blvd ingested.</div>
+        <div class="entry">[02:11:34] <span class="system">SYSTEM:</span> Autonomous check complete. Standing by. <span class="blink">_</span></div>
+    </div>
+
+    <div class="footer">
+        Settlement Terminal v1.0 | Real-time Activity Monitor
+    </div>
+
+    <script>
+        // Simple mock function to add new entries
+        function addEntry(text, className) {
+            const feed = document.getElementById('feed');
+            const entry = document.createElement('div');
+            entry.className = 'entry';
+            
+            // Format time
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}:${seconds}`;
+            
+            // Create colored spans based on class
+            let coloredText = text;
+            if (className === 'success') {
+                coloredText = `<span class="success">SUCCESS:</span> ${text}`;
+            } else if (className === 'funds') {
+                coloredText = `<span class="funds">FUNDS:</span> ${text}`;
+            } else if (className === 'system') {
+                coloredText = `<span class="system">SYSTEM:</span> ${text}`;
+            }
+            
+            entry.innerHTML = `[${timeStr}] ${coloredText}`;
+            feed.appendChild(entry);
+            feed.scrollTop = feed.scrollHeight;
+        }
+
+        // Simulate autonomous activity
+        let eventIndex = 0;
+        const mockEvents = [
+            { delay: 3000, text: 'Property 88 Dewitt Dr ingested.', type: 'success' },
+            { delay: 6000, text: '$1,150.00 deposited to Escrow.', type: 'funds' },
+            { delay: 9000, text: 'Property 1523 Maple Street ingested.', type: 'success' },
+            { delay: 12000, text: '$2,850.00 deposited to Escrow.', type: 'funds' },
+            { delay: 15000, text: 'Autonomous sweep in progress...', type: 'system' },
+            { delay: 18000, text: 'Property 567 Riverside Ave ingested.', type: 'success' },
+            { delay: 21000, text: '$1,975.00 deposited to Escrow.', type: 'funds' },
+            { delay: 24000, text: 'Clearing house cycle complete. Waiting for new deals...', type: 'system' },
+        ];
+
+        // Schedule mock events
+        mockEvents.forEach(event => {
+            setTimeout(() => addEntry(event.text, event.type), event.delay);
+        });
+
+        // Loop the events every 30 seconds
+        setInterval(() => {
+            mockEvents.forEach(event => {
+                setTimeout(() => addEntry(event.text, event.type), event.delay);
+            });
+        }, 30000);
+    </script>
+</body>
+</html>
