@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settlement Terminal</title>
+    <title>Institutional Settlement Terminal</title>
     <style>
         body {
             background-color: #000;
@@ -16,31 +16,34 @@
         }
         .header {
             border-bottom: 1px solid #ffb000;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
             margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             font-weight: bold;
+            font-size: 13px;
         }
         .terminal-feed {
-            font-size: 14px;
-            line-height: 1.6;
+            font-size: 13px;
+            line-height: 1.8;
         }
-        .entry { margin-bottom: 6px; }
-        .success { color: #00ff00; }
+        .entry { margin-bottom: 8px; border-left: 2px solid #333; padding-left: 10px; }
+        .alpha { color: #00ff00; font-weight: bold; } /* Green for verified alpha edge */
+        .standard { color: #ffb000; }
+        .quarantine { color: #ff0000; font-weight: bold; } /* Red for blocked anomalies */
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
     <div class="header" id="terminal-header">
-        <div>SYSTEM STATUS: --</div>
-        <div>INGESTION QUEUE: --</div>
-        <div>TELEMETRY: CONNECTING</div>
+        <div>CORE ENGINE: CONNECTING</div>
+        <div>PIPELINE: STREAM_INITIALIZATION</div>
+        <div>BAL: [AUTONOMOUS TRACKING]</div>
     </div>
     
     <div class="terminal-feed" id="feed">
-        <div class="entry">[SYSTEM]: Initializing connection to telemetry stream...<span class="blink">_</span></div>
+        <div class="entry">[SYSTEM]: Connecting to Cloud Telemetry Router...<span class="blink">_</span></div>
     </div>
 
     <script>
@@ -53,37 +56,46 @@
                     const feed = document.getElementById('feed');
                     const header = document.getElementById('terminal-header');
                     
-                    // Update header parameters
+                    // Update Terminal Header with Data Pipe Origins
                     header.innerHTML = `
-                        <div>SYSTEM STATUS: <span class="success">ONLINE</span></div>
-                        <div>ACTIVE INSTANCES: ${json.queue_count}</div>
-                        <div>BAL: [AUTONOMOUS ENGINE]</div>
+                        <div>SYSTEM STATUS: <span style="color:#00ff00">ONLINE</span></div>
+                        <div>FEED CONFIG: ${json.pipeline}</div>
+                        <div>INGESTION BLOCKS: ${json.queue_count}</div>
                     `;
 
-                    // Clear previous buffer and output live data rows
                     feed.innerHTML = '';
-                    if (json.data.length === 0) {
-                        feed.innerHTML = `<div class="entry">[SYSTEM]: Stream active. Awaiting new ledger entries...</div>`;
-                    } else {
-                        json.data.forEach(item => {
-                            const entry = document.createElement('div');
-                            entry.className = 'entry success';
-                            
-                            const timeObj = new Date(item.created_at);
-                            const timeStr = timeObj.toLocaleTimeString('en-US', { hour12: false });
-                            
-                            entry.textContent = `[${timeStr}] SUCCESS: Asset tracked at ${item.address} (Value: $${item.arv || 'VERIFYING'})`;
-                            feed.appendChild(entry);
-                        });
-                    }
+                    
+                    json.data.forEach(item => {
+                        const entry = document.createElement('div');
+                        
+                        const timeObj = new Date(item.timestamp);
+                        const timeStr = timeObj.toLocaleTimeString('en-US', { hour12: false });
+                        
+                        let logLine = `[${timeStr}] `;
+
+                        if (item.circuit_breaker === 'QUARANTINED_ANOMALY') {
+                            entry.className = 'entry quarantine';
+                            logLine += `CRITICAL: Asset at ${item.address} BLOCKED BY CIRCUIT BREAKER. Reason: Corrupt/Negative Margin Math.`;
+                        } else if (item.alpha_target === true) {
+                            entry.className = 'entry alpha';
+                            logLine += `ALPHA TARGET DETECTED: ${item.address} | DELTA: ${item.delta_score} | ROUTED TO: ${item.execution_tier}`;
+                        } else {
+                            entry.className = 'entry standard';
+                            logLine += `METRIC PASSED: ${item.address} | DELTA: ${item.delta_score} | ROUTED TO: ${item.execution_tier}`;
+                        }
+                        
+                        entry.textContent = logLine;
+                        feed.appendChild(entry);
+                    });
+
                     window.scrollTo(0, document.body.scrollHeight);
                 }
             } catch (error) {
-                console.error("Telemetry link lost. Re-establishing connection...", error);
+                console.error("Telemetry hardware link disruption. Re-routing stream...", error);
             }
         }
 
-        // High-frequency execution cycle (every 3000ms)
+        // Execution interval set to institutional high frequency (3000ms sweep cycles)
         setInterval(executeTelemetrySweep, 3000);
         executeTelemetrySweep();
     </script>
