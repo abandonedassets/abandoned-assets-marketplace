@@ -3,173 +3,193 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <title>Marketplace - Abandoned Assets</title>
+    <title>Asset Marketplace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            margin: 0;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .analytics-card {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .analytics-card h3 { margin: 0; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .analytics-card p { margin: 10px 0 0 0; font-size: 32px; font-weight: 800; color: #1e3a8a; }
+
+        .filter-strip {
+            background: #fff;
+            padding: 16px;
+            border-radius: 12px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+        }
+        .filter-input {
+            flex: 1; min-width: 150px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px;
+        }
+        .filter-btn {
+            background: #1e3a8a; color: #fff; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; text-transform: uppercase;
+        }
+
+        .listings-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .property-card {
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 24px;
+            position: relative;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.02);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .badge {
+            position: absolute; top: 24px; right: 24px; background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+        }
+        .property-card h2 { font-size: 20px; margin: 0 0 8px 0; color: #0f172a; max-width: 75%; line-height: 1.3; }
+        .property-card sub { font-size: 14px; color: #64748b; display: block; margin-bottom: 20px; font-weight: 500; }
+
+        /* Mobile Anti-Collision Grid */
+        .metrics-grid {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)) !important;
+            gap: 12px !important;
+            width: 100% !important;
+            margin-bottom: 24px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        .metric-block { display: flex; flex-direction: column; }
+        .metric-label { font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .metric-value { font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 4px; }
+        .metric-value.highlight { color: #16a34a; }
+
+        .action-button {
+            width: 100%; padding: 14px; background: #1e3a8a; color: #fff; border: none; border-radius: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; font-size: 13px;
+        }
+
+        /* Modal Overlay Styling */
+        .vdr-modal-content {
+            background:#ffffff; padding:28px; border-radius:12px; width:92%; max-width:480px; color:#0f172a; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); box-sizing: border-box;
+        }
+        .vdr-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; font-size: 14px; }
+        .vdr-btn { width: 100%; margin-top: 10px; padding: 16px; font-size: 14px; font-weight: 700; text-transform: uppercase; border-radius: 8px; cursor: pointer; text-align: center; }
+    </style>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-slate-100">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-md border-b-4 border-blue-900">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="text-2xl font-bold text-blue-900">Abandoned Assets</div>
-            <div class="space-x-6">
-                <a href="index.html" class="text-slate-700 font-semibold hover:text-blue-900 transition">Dashboard</a>
-                <a href="marketplace.html" class="text-slate-700 font-semibold hover:text-blue-900 transition">Marketplace</a>
-                <a href="login.html" class="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">Login</a>
+<body>
+    <div class="container">
+        <div class="analytics-grid">
+            <div class="analytics-card"><h3>Active Listings</h3><p>247</p></div>
+            <div class="analytics-card"><h3>Total ARV</h3><p>$18.3M</p></div>
+            <div class="analytics-card"><h3>Avg ROI</h3><p>34%</p></div>
+        </div>
+
+        <div class="filter-strip">
+            <input type="text" class="filter-input" placeholder="Search parameters...">
+            <input type="text" class="filter-input" placeholder="All Jurisdictions">
+            <input type="text" class="filter-input" placeholder="Min Metrics">
+            <button class="filter-btn">Search Base</button>
+        </div>
+
+        <div class="listings-container">
+            <div class="property-card">
+                <span class="badge">AVAILABLE</span>
+                <h2>2847 Oak Ridge Drive, Phoenix AZ 85001</h2>
+                <sub>4 BD | 2 BA | 1,850 SqFt</sub>
+                <div class="metrics-grid">
+                    <div class="metric-block"><span class="metric-label">ARV</span><span class="metric-value">$285K</span></div>
+                    <div class="metric-block"><span class="metric-label">Purchase</span><span class="metric-value">$120K</span></div>
+                    <div class="metric-block"><span class="metric-label">CapEx</span><span class="metric-value">$45K</span></div>
+                    <div class="metric-block"><span class="metric-label">ROI</span><span class="metric-value highlight">38%</span></div>
+                </div>
+                <button class="action-button">Initialize Underwriting</button>
             </div>
-        </div>
-    </nav>
 
-    <!-- Header -->
-    <div class="bg-white shadow-md border-b border-slate-200 p-6">
-        <div class="max-w-7xl mx-auto">
-            <h1 class="text-3xl font-bold text-blue-900 mb-2">Active Listings</h1>
-            <p class="text-slate-600">Browse available wholesale deals with key financial metrics</p>
-        </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="max-w-7xl mx-auto px-6 py-6">
-        <div class="bg-white rounded-lg shadow p-4 grid grid-cols-4 gap-4">
-            <input type="text" placeholder="Search by address" class="border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900">
-            <select class="border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900">
-                <option>All States</option>
-                <option>California</option>
-                <option>Texas</option>
-                <option>Florida</option>
-            </select>
-            <select class="border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900">
-                <option>Min ROI: Any</option>
-                <option>20%+</option>
-                <option>30%+</option>
-                <option>40%+</option>
-            </select>
-            <button class="bg-blue-900 text-white font-semibold rounded hover:bg-blue-800 transition">Search</button>
-        </div>
-    </div>
-
-    <!-- Property Listings -->
-    <div class="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 gap-6">
-        <!-- Card 1 -->
-        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition border-l-4 border-blue-900">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-blue-900">2847 Oak Ridge Drive, Phoenix AZ 85001</h2>
-                        <p class="text-slate-500 text-sm mt-1">4 BD | 2 BA | 1,850 SqFt</p>
-                    </div>
-                    <span class="bg-blue-900 text-white px-3 py-1 rounded-full text-sm font-semibold">Available</span>
+            <div class="property-card">
+                <span class="badge">AVAILABLE</span>
+                <h2>1523 Maple Street, Atlanta GA 30303</h2>
+                <sub>3 BD | 2 BA | 1,600 SqFt</sub>
+                <div class="metrics-grid">
+                    <div class="metric-block"><span class="metric-label">ARV</span><span class="metric-value">$195K</span></div>
+                    <div class="metric-block"><span class="metric-label">Purchase</span><span class="metric-value">$90K</span></div>
+                    <div class="metric-block"><span class="metric-label">CapEx</span><span class="metric-value">$25K</span></div>
+                    <div class="metric-block"><span class="metric-label">ROI</span><span class="metric-value highlight">35%</span></div>
                 </div>
-                <div class="grid grid-cols-5 gap-4 py-4 border-t border-b border-slate-200">
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">ARV</div>
-                        <div class="text-2xl font-bold text-blue-900">$285K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Purchase</div>
-                        <div class="text-2xl font-bold text-slate-700">$120K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Repair</div>
-                        <div class="text-2xl font-bold text-slate-700">$45K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">ROI</div>
-                        <div class="text-2xl font-bold text-green-600">38%</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Days Active</div>
-                        <div class="text-2xl font-bold text-slate-700">12</div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-slate-600 text-sm">Distressed property, owner finance available. Fast closing. Perfect for fix-and-flip.</p>
-                </div>
-                <button class="mt-4 bg-blue-900 text-white px-6 py-2 rounded font-semibold hover:bg-blue-800 transition">View Details</button>
-            </div>
-        </div>
-
-        <!-- Card 2 -->
-        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition border-l-4 border-slate-400">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-blue-900">1523 Maple Street, Dallas TX 75201</h2>
-                        <p class="text-slate-500 text-sm mt-1">3 BD | 1 BA | 1,200 SqFt</p>
-                    </div>
-                    <span class="bg-blue-900 text-white px-3 py-1 rounded-full text-sm font-semibold">Available</span>
-                </div>
-                <div class="grid grid-cols-5 gap-4 py-4 border-t border-b border-slate-200">
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">ARV</div>
-                        <div class="text-2xl font-bold text-blue-900">$195K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Purchase</div>
-                        <div class="text-2xl font-bold text-slate-700">$78K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Repair</div>
-                        <div class="text-2xl font-bold text-slate-700">$32K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">ROI</div>
-                        <div class="text-2xl font-bold text-green-600">42%</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Days Active</div>
-                        <div class="text-2xl font-bold text-slate-700">5</div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-slate-600 text-sm">Bank-owned property, motivated seller. Ideal rental investment. Ready for tenant.</p>
-                </div>
-                <button class="mt-4 bg-blue-900 text-white px-6 py-2 rounded font-semibold hover:bg-blue-800 transition">View Details</button>
-            </div>
-        </div>
-
-        <!-- Card 3 -->
-        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition border-l-4 border-blue-900">
-            <div class="p-6">
-                <div class="flex justify-between items-start mb-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-blue-900">567 Riverside Avenue, Miami FL 33101</h2>
-                        <p class="text-slate-500 text-sm mt-1">2 BD | 2 BA | 950 SqFt</p>
-                    </div>
-                    <span class="bg-blue-900 text-white px-3 py-1 rounded-full text-sm font-semibold">Available</span>
-                </div>
-                <div class="grid grid-cols-5 gap-4 py-4 border-t border-b border-slate-200">
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">ARV</div>
-                        <div class="text-2xl font-bold text-blue-900">$325K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Purchase</div>
-                        <div class="text-2xl font-bold text-slate-700">$155K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Repair</div>
-                        <div class="text-2xl font-bold text-slate-700">$55K</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">ROI</div>
-                        <div class="text-2xl font-bold text-green-600">29%</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-slate-500 text-xs uppercase font-semibold">Days Active</div>
-                        <div class="text-2xl font-bold text-slate-700">8</div>
-                    </div>
-                </div>
-                <div class="mt-4">
-                    <p class="text-slate-600 text-sm">Waterfront potential, multiple unit opportunity. Commercial zoning available.</p>
-                </div>
-                <button class="mt-4 bg-blue-900 text-white px-6 py-2 rounded font-semibold hover:bg-blue-800 transition">View Details</button>
+                <button class="action-button">Initialize Underwriting</button>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <div class="bg-blue-900 text-white text-center py-6 mt-12">
-        <p class="text-slate-300">© 2026 Abandoned Assets Marketplace. Industrial real estate platform.</p>
+    <div id="vdr-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.95); z-index:9999; justify-content:center; align-items:center; backdrop-filter: blur(6px);">
+        <div class="vdr-modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <h2 style="margin:0; font-size:20px; font-weight:800; color:#0f172a;">Level 2 Underwriting</h2>
+                    <div style="font-size:11px; color:#64748b; font-family:monospace; margin-top:4px;">ID: <span id="vdr-hash-id">RECONFIGURING</span></div>
+                </div>
+                <span style="background:#059669; color:#fff; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:700;">CLEARED</span>
+            </div>
+            
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:16px; border-radius:8px; margin:20px 0;">
+                <div style="font-size:11px; color:#64748b; font-weight:bold; letter-spacing:0.5px; margin-bottom:12px;">TARGET ASSET TELEMETRY</div>
+                <div class="vdr-row"><span style="color:#64748b;">Asset Allocation</span><strong id="vdr-address" style="color:#0f172a; text-align:right; max-width:65%;">Scraping...</strong></div>
+                <div class="vdr-row"><span style="color:#64748b;">Title Chain Registry</span><strong style="color:#0f172a;">Verified Clear</strong></div>
+                <div class="vdr-row" style="border-bottom:none;"><span style="color:#64748b;">Execution Status</span><strong style="color:#0f172a;">Institutional Block</strong></div>
+            </div>
+
+            <p style="font-size:13px; line-height:1.6; color:#475569; margin-bottom:24px;">
+                Ingestion infrastructure and projected CapEx distributions have been verified through the cloud data layer. Counterparty token authorization is required to unlock full closing packets.
+            </p>
+
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <button class="vdr-btn" onclick="alert('AUTH_ERROR: Counterparty API Token Missing. Please contact the settlement desk to establish an integrated data pipe.')" style="background:#0f172a; color:#fff; border:none;">Request Level 2 VDR Access</button>
+                <button class="vdr-btn" onclick="document.getElementById('vdr-modal').style.display='none'" style="background:#fff; color:#475569; border:1px solid #cbd5e1;">Terminate Session</button>
+            </div>
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('action-button')) {
+                e.preventDefault();
+                
+                // Climb component scope to pull contextual data bindings
+                const card = e.target.closest('.property-card');
+                let addressString = "SECURED DATA INSTANCE";
+                if (card) {
+                    const title = card.querySelector('h2');
+                    if (title) addressString = title.innerText.trim();
+                }
+                
+                // Inject contextual analytics directly into VDR interface
+                document.getElementById('vdr-address').innerText = addressString;
+                document.getElementById('vdr-hash-id').innerText = 'REQ-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                document.getElementById('vdr-modal').style.display = 'flex';
+            }
+        });
+    </script>
 </body>
 </html>
