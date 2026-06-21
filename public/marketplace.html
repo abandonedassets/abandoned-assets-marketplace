@@ -2,18 +2,174 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="style.css">
-    <title>Marketplace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Marketplace - Abandoned Assets</title>
 </head>
-<body>
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="marketplace.html">Marketplace</a>
-        <a href="login.html">Login</a>
+<body class="bg-gradient-to-br from-slate-50 to-slate-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md border-b-4 border-blue-900">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-2xl font-bold text-blue-900">Abandoned Assets</div>
+            <div class="space-x-6">
+                <a href="index.html" class="text-slate-700 font-semibold hover:text-blue-900 transition">Dashboard</a>
+                <a href="marketplace.html" class="text-slate-700 font-semibold hover:text-blue-900 transition">Marketplace</a>
+                <a href="login.html" class="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">Login</a>
+            </div>
+        </div>
     </nav>
-    <div class="container">
-        <h1>Marketplace</h1>
-        <p>Listing available assets...</p>
+
+    <!-- Header -->
+    <div class="bg-white shadow-md border-b border-slate-200 p-6">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold text-blue-900 mb-2">Active Listings</h1>
+            <p class="text-slate-600">Browse available wholesale deals with key financial metrics</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="max-w-7xl mx-auto px-6 py-6">
+        <div class="bg-white rounded-lg shadow p-4 grid grid-cols-4 gap-4">
+            <input type="text" placeholder="Search by address" class="border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900">
+            <select class="border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900">
+                <option>All States</option>
+                <option>California</option>
+                <option>Texas</option>
+                <option>Florida</option>
+            </select>
+            <select class="border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900">
+                <option>Min ROI: Any</option>
+                <option>20%+</option>
+                <option>30%+</option>
+                <option>40%+</option>
+            </select>
+            <button class="bg-blue-900 text-white font-semibold rounded hover:bg-blue-800 transition">Search</button>
+        </div>
+    </div>
+
+    <!-- Property Listings -->
+    <div class="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 gap-6">
+        <!-- Card 1 -->
+        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition border-l-4 border-blue-900">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-blue-900">2847 Oak Ridge Drive, Phoenix AZ 85001</h2>
+                        <p class="text-slate-500 text-sm mt-1">4 BD | 2 BA | 1,850 SqFt</p>
+                    </div>
+                    <span class="bg-blue-900 text-white px-3 py-1 rounded-full text-sm font-semibold">Available</span>
+                </div>
+                <div class="grid grid-cols-5 gap-4 py-4 border-t border-b border-slate-200">
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">ARV</div>
+                        <div class="text-2xl font-bold text-blue-900">$285K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Purchase</div>
+                        <div class="text-2xl font-bold text-slate-700">$120K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Repair</div>
+                        <div class="text-2xl font-bold text-slate-700">$45K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">ROI</div>
+                        <div class="text-2xl font-bold text-green-600">38%</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Days Active</div>
+                        <div class="text-2xl font-bold text-slate-700">12</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-slate-600 text-sm">Distressed property, owner finance available. Fast closing. Perfect for fix-and-flip.</p>
+                </div>
+                <button class="mt-4 bg-blue-900 text-white px-6 py-2 rounded font-semibold hover:bg-blue-800 transition">View Details</button>
+            </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition border-l-4 border-slate-400">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-blue-900">1523 Maple Street, Dallas TX 75201</h2>
+                        <p class="text-slate-500 text-sm mt-1">3 BD | 1 BA | 1,200 SqFt</p>
+                    </div>
+                    <span class="bg-blue-900 text-white px-3 py-1 rounded-full text-sm font-semibold">Available</span>
+                </div>
+                <div class="grid grid-cols-5 gap-4 py-4 border-t border-b border-slate-200">
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">ARV</div>
+                        <div class="text-2xl font-bold text-blue-900">$195K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Purchase</div>
+                        <div class="text-2xl font-bold text-slate-700">$78K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Repair</div>
+                        <div class="text-2xl font-bold text-slate-700">$32K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">ROI</div>
+                        <div class="text-2xl font-bold text-green-600">42%</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Days Active</div>
+                        <div class="text-2xl font-bold text-slate-700">5</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-slate-600 text-sm">Bank-owned property, motivated seller. Ideal rental investment. Ready for tenant.</p>
+                </div>
+                <button class="mt-4 bg-blue-900 text-white px-6 py-2 rounded font-semibold hover:bg-blue-800 transition">View Details</button>
+            </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="bg-white rounded-lg shadow-lg hover:shadow-xl transition border-l-4 border-blue-900">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-blue-900">567 Riverside Avenue, Miami FL 33101</h2>
+                        <p class="text-slate-500 text-sm mt-1">2 BD | 2 BA | 950 SqFt</p>
+                    </div>
+                    <span class="bg-blue-900 text-white px-3 py-1 rounded-full text-sm font-semibold">Available</span>
+                </div>
+                <div class="grid grid-cols-5 gap-4 py-4 border-t border-b border-slate-200">
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">ARV</div>
+                        <div class="text-2xl font-bold text-blue-900">$325K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Purchase</div>
+                        <div class="text-2xl font-bold text-slate-700">$155K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Repair</div>
+                        <div class="text-2xl font-bold text-slate-700">$55K</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">ROI</div>
+                        <div class="text-2xl font-bold text-green-600">29%</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-slate-500 text-xs uppercase font-semibold">Days Active</div>
+                        <div class="text-2xl font-bold text-slate-700">8</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <p class="text-slate-600 text-sm">Waterfront potential, multiple unit opportunity. Commercial zoning available.</p>
+                </div>
+                <button class="mt-4 bg-blue-900 text-white px-6 py-2 rounded font-semibold hover:bg-blue-800 transition">View Details</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-blue-900 text-white text-center py-6 mt-12">
+        <p class="text-slate-300">© 2026 Abandoned Assets Marketplace. Industrial real estate platform.</p>
     </div>
 </body>
 </html>
