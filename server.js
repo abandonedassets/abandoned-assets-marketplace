@@ -3,6 +3,7 @@ const express = require('express');
 const session = require('express-session');
 const { Pool } = require('pg');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -23,7 +24,10 @@ app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }), strip
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve static assets (CSS/JS/images). Will not interfere with API routes.
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath, { extensions: ['html', 'htm'] }));
 
 // Session middleware
 app.use(session({
@@ -100,31 +104,32 @@ app.get('/clusters', isAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'clusters.html'));
 });
 
-// Simple login page (for manual login if needed)
-app.get('/login.html', (req, res) => {
-  res.send(`
-    <h2>Login</h2>
-    <form method="post" action="/login">
-      <input name="email" placeholder="Email" required /><br/>
-      <input name="password" type="password" placeholder="Password" required /><br/>
-      <button type="submit">Login</button>
-    </form>
-  `);
-});
-app.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const result = await pool.query('SELECT id, role FROM users WHERE email = $1 AND password = $2', [email, password]);
-  if (result.rows.length) {
-    req.session.userId = result.rows[0].id;
-    req.session.userRole = result.rows[0].role;
-    res.redirect('/');
-  } else {
-    res.send('Invalid credentials');
+// Explicit UI routes
+function sendIfExists(res, relPath) {
+  const full = path.join(publicPath, relPath);
+  if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+    return res.status(200).sendFile(full);
   }
+  return null;
+}
+
+app.get(['/login', '/login.html'], (req, res, next) => {
+  if (sendIfExists(res, 'login.html')) return;
+  // fallback to index.html (SPA) if login isn't a standalone file
+  if (sendIfExists(res, 'index.html')) return;
+  next();
 });
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get(['/marketplace', '/marketplace.html'], (req, res, next) => {
+  if (sendIfExists(res, 'marketplace.html')) return;
+  if (sendIfExists(res, 'index.html')) return;
+  next();
+});
+
+app.get('/pricing.html', (req, res, next) => {
+  if (sendIfExists(res, 'pricing.html')) return;
+  if (sendIfExists(res, 'index.html')) return;
+  next();
 });
 
 // Monetization pages (public — no auth required to view pricing)
@@ -151,6 +156,43 @@ app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
   });
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Graceful catch-all for non-API GET requests:
+// - If the exact static file exists, serve it
+// - If adding .html resolves, serve it
+// - Otherwise fall back to index.html (SPA support)
+// - Always forward /api/* to downstream API handlers
+app.get('*', (req, res, next) => {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api/')) return next();
+
+  // Normalize and prevent path traversal
+  const safePath = path.normalize(req.path).replace(/^(\.{2}(\/|\\|$))+/, '');
+  const candidate = path.join(publicPath, safePath);
+
+  if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+    return res.status(200).sendFile(candidate);
+  }
+
+  // Try with .html extension
+  const candidateHtml = candidate + '.html';
+  if (fs.existsSync(candidateHtml) && fs.statSync(candidateHtml).isFile()) {
+    return res.status(200).sendFile(candidateHtml);
+  }
+
+  // Fallback to index.html for SPA routes
+  const indexFile = path.join(publicPath, 'index.html');
+  if (fs.existsSync(indexFile) && fs.statSync(indexFile).isFile()) {
+    return res.status(200).sendFile(indexFile);
+  }
+
+  // Nothing matched, continue to next middleware (likely 404 or API)
+  next();
 });
 
 app.listen(port, () => {
