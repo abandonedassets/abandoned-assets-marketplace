@@ -14,13 +14,18 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// Track DB connection status
+let dbConnected = false;
+
 // Initialize DB connection asynchronously without blocking server startup
 (async function initDb() {
   try {
     const client = await pool.connect();
     client.release();
+    dbConnected = true;
     console.log('INFO: Database connection verified');
   } catch (err) {
+    dbConnected = false;
     console.error('WARN: Database connection verification failed (startup will continue):', err && err.message ? err.message : err);
   }
 })();
@@ -120,6 +125,16 @@ app.use('/api', adminApiRouter);
 app.use('/api', clusterApiRouter);
 app.use('/checkout', stripeRouter);
 app.use('/api', dealsApiRouter);
+
+// Health check endpoint (Render will use this to verify the service is running)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    server: 'up',
+    database: dbConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // HTML pages (simple static routes with role checks)
 const isAuthenticated = (req, res, next) => {
