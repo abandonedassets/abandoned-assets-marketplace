@@ -3,36 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asset Marketplace</title>
+    <title>Institutional Deal Tape | Asset Portfolio</title>
     <style>
-        body { font-family: sans-serif; background: #f8fafc; padding: 20px; }
-        .property-card { background: #fff; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 20px; border-radius: 8px; }
-        .action-button { background: #1e3a8a; color: #fff; padding: 12px; border: none; width: 100%; cursor: pointer; border-radius: 6px; }
-    </style>
-</head>
-<body>
-    <div class="property-card">
-        <h2>2847 Oak Ridge Drive, Phoenix AZ 85001</h2>
-        <button class="action-button" onclick="openVDR('2847 Oak Ridge Drive, Phoenix AZ 85001')">View Details</button>
-    </div>
-    <div class="property-card">
-        <h2>1523 Maple Street, Atlanta GA 30303</h2>
-        <button class="action-button" onclick="openVDR('1523 Maple Street, Atlanta GA 30303')">View Details</button>
-    </div>
+        :root { --primary: #0f172a; --accent: #1e3a8a; --muted: #64748b; --bg: #f1f5f9; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--primary); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        /* Institutional Header */
+        header { margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+        .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .stat-card { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-val { font-size: 18px; font-weight: 800; margin-top: 5px; }
 
-    <div id="vdr-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
-        <div style="background:#fff; padding:30px; border-radius:10px; width:400px;">
-            <h2 id="modal-address">Asset Details</h2>
-            <p><strong>Status:</strong> Underwriting Required</p>
-            <button onclick="document.getElementById('vdr-modal').style.display='none'">Close</button>
-        </div>
-    </div>
-
-    <script>
-        function openVDR(address) {
-            document.getElementById('modal-address').innerText = address;
-            document.getElementById('vdr-modal').style.display = 'flex';
-        }
-    </script>
-</body>
-</html>
+        /* Deal Tape Grid */
+        .deal-tape { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .deal-card { background: #fff; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .deal-info h2 { margin: 0 0 10px 0; font-size: 18px; }
+        .metrics { display: flex; gap: 20px; font-size: 14px; }
+        
+        .cta-btn { background: var(--accent); color: #fff; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+        
+        /* VDR Overlay */
+        #vdr-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15, 23, 42, 0.85); z-index:9999; justify-content:center; align-items:center; }
+        .vdr-content { background:#fff; padding:40px; border-radius
