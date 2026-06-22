@@ -4,34 +4,73 @@
     <meta charset="UTF-8">
     <title>ASSET_DEAL_TAPE</title>
     <style>
-        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
-        .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; }
-        .error-log { color: #f00; border: 1px solid #f00; padding: 10px; margin-top: 20px; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        .error-banner { color: #f00; border: 1px solid #f00; padding: 15px; margin-bottom: 20px; font-weight: bold; }
+        .diagnostic { color: #FFA500; font-size: 0.9em; margin-top: 10px; display: block; font-weight: normal; border-top: 1px dotted #f00; padding-top: 10px; }
+        .deal-card { border: 1px solid #0f0; padding: 10px; margin-bottom: 10px; }
+        #status { font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
     </style>
 </head>
 <body>
     <h1>// ACTIVE DEAL TAPE</h1>
-    <div id="status">STATUS: CONNECTING...</div>
-    <div id="marketplace-listings"></div>
+    <div id="status">STATUS: INITIALIZING...</div>
+    <div id="feed"></div>
 
     <script>
+        let isPolling = false;
+        let lastMessageState = "";
+
         async function fetchFeed() {
+            if (isPolling) return; // Drop overlapping polls
+            isPolling = true;
+
+            const statusDiv = document.getElementById('status');
+            const feedDiv = document.getElementById('feed');
+            
+            // Hard 10-second request timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); 
+
             try {
-                const res = await fetch('/api/terminal-feed');
+                const res = await fetch('/api/terminal-feed?limit=500', { signal: controller.signal });
+                clearTimeout(timeoutId);
                 const json = await res.json();
                 
-                if (json.source === 'database') {
-                    document.getElementById('status').innerText = "STATUS: ONLINE (LIVE)";
-                    document.getElementById('marketplace-listings').innerHTML = json.data.map(item => `
-                        <div class="deal-card">ASSET: ${item.address} | BASIS: $${item.purchase_price || 0}</div>
-                    `).join('');
+                if (json.status === "SUCCESS") {
+                    const messageHash = "SUCCESS_" + json.count + "_" + json.cached;
+                    if (lastMessageState !== messageHash) { // Suppress redundant re-renders
+                        statusDiv.innerText = `SYSTEM STATUS: ONLINE | DEALS: ${json.count} ${json.cached ? '[CACHED]' : ''}`;
+                        feedDiv.innerHTML = json.data.map(item => `
+                            <div class="deal-card">ASSET: ${item.address || 'UNKNOWN'} | BASIS: $${item.purchase_price || 0}</div>
+                        `).join('');
+                        lastMessageState = messageHash;
+                    }
                 } else {
-                    document.getElementById('status').innerHTML = `<div class="error-log">SYSTEM ERROR: ${json.error || 'CONNECTION_REJECTED'}</div>`;
+                    const errorMsg = `CRITICAL_FAILURE: ${json.error || 'UNKNOWN_SERVER_ERROR'}`;
+                    if (lastMessageState !== errorMsg) {
+                        statusDiv.innerHTML = `
+                            <div class="error-banner">
+                                ${errorMsg}
+                                <span class="diagnostic">DIAGNOSTIC: ${json.diagnostic_hint || 'Check server logs.'}</span>
+                            </div>`;
+                        feedDiv.innerHTML = "";
+                        lastMessageState = errorMsg;
+                    }
                 }
-            } catch(e) { 
-                document.getElementById('status').innerText = "SYSTEM_FAILURE: UNREACHABLE"; 
+            } catch(e) {
+                clearTimeout(timeoutId);
+                const errorMsg = e.name === 'AbortError' ? 'CONNECTION_TIMEOUT_10S' : 'CONNECTION_REFUSED';
+                
+                if (lastMessageState !== errorMsg) {
+                    statusDiv.innerHTML = `<div class="error-banner">${errorMsg}</div>`;
+                    feedDiv.innerHTML = "";
+                    lastMessageState = errorMsg;
+                }
+            } finally {
+                isPolling = false;
             }
         }
+        
         setInterval(fetchFeed, 3000);
         fetchFeed();
     </script>
