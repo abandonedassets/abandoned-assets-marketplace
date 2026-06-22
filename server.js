@@ -1,33 +1,39 @@
-const express = require('express');
-const path = require('path');
-const { Pool } = require('pg');
-const app = express();
-const port = process.env.PORT || 10000;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ASSET_DEAL_TAPE</title>
+    <style>
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; }
+        .error-log { color: #f00; border: 1px solid #f00; padding: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>// ACTIVE DEAL TAPE</h1>
+    <div id="status">STATUS: CONNECTING...</div>
+    <div id="marketplace-listings"></div>
 
-app.use((req, res, next) => {
-    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    next();
-});
-
-let pool;
-if (process.env.DATABASE_URL) {
-    pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-}
-
-app.get('/api/terminal-feed', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit) || 500, 1000);
-    
-    if (!pool) {
-        return res.json({ source: "standby_engine", data: [{ address: "STANDBY_ASSET_01", delta_score: "0.00", basis: 0 }] });
-    }
-
-    try {
-        const { rows } = await pool.query(`SELECT * FROM properties ORDER BY created_at DESC LIMIT $1`, [limit]);
-        res.json({ source: "database", data: rows });
-    } catch (err) {
-        res.status(500).json({ source: "fallback", error: "DB_CONNECTION_FAILURE" });
-    }
-});
-
-app.use(express.static(path.join(__dirname, 'public')));
-app.listen(port, () => console.log(`SYSTEM_LIVE_ON_PORT:${port}`));
+    <script>
+        async function fetchFeed() {
+            try {
+                const res = await fetch('/api/terminal-feed');
+                const json = await res.json();
+                
+                if (json.source === 'database') {
+                    document.getElementById('status').innerText = "STATUS: ONLINE (LIVE)";
+                    document.getElementById('marketplace-listings').innerHTML = json.data.map(item => `
+                        <div class="deal-card">ASSET: ${item.address} | BASIS: $${item.purchase_price || 0}</div>
+                    `).join('');
+                } else {
+                    document.getElementById('status').innerHTML = `<div class="error-log">SYSTEM ERROR: ${json.error || 'CONNECTION_REJECTED'}</div>`;
+                }
+            } catch(e) { 
+                document.getElementById('status').innerText = "SYSTEM_FAILURE: UNREACHABLE"; 
+            }
+        }
+        setInterval(fetchFeed, 3000);
+        fetchFeed();
+    </script>
+</body>
+</html>
