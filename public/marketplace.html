@@ -4,70 +4,49 @@
     <meta charset="UTF-8">
     <title>ASSET_DEAL_TAPE</title>
     <style>
-        body { font-family: sans-serif; background: #000; color: #0f0; padding: 20px; margin: 0; }
-        .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; background: #111; }
-        .btn-init { background: #0f0; color: #000; border: none; padding: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
-        #vdr-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:99999; justify-content:center; align-items:center; }
-        .modal-content { background:#000; border:2px solid #0f0; padding:40px; color:#0f0; max-width:400px; width:90%; }
+        body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
+        #status-bar { border: 1px solid #0f0; padding: 10px; margin-bottom: 20px; display: flex; gap: 20px; font-size: 12px; }
+        .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; }
+        .warning { background: #500; color: #f00; padding: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-    <div style="padding: 10px; border-bottom: 1px solid #333; margin-bottom: 20px;">
-        <a href="/terminal.html" style="color:#0f0; text-decoration:none; font-family:monospace;">[TERMINAL]</a>
+    <div id="status-bar">
+        <span id="sys-status">STATUS: INITIALIZING</span>
+        <span id="deal-count">DEALS: 0</span>
+        <span id="last-sync">SYNC: --:--</span>
     </div>
-
+    <div id="alert-container"></div>
     <h1>// ACTIVE DEAL TAPE</h1>
-    <div id="marketplace-listings">INITIALIZING FEED...</div>
-
-    <div id="vdr-modal">
-        <div class="modal-content">
-            <h2 id="modal-title">ACCESS_REQ</h2>
-            <p style="color:#888;">STATUS: AUTHORIZATION REQUIRED</p>
-            <button class="btn-init" style="width:100%; margin-top:20px;" onclick="document.getElementById('vdr-modal').style.display='none'">CLOSE</button>
-        </div>
-    </div>
+    <div id="marketplace-listings"></div>
 
     <script>
         async function fetchFeed() {
+            const container = document.getElementById('marketplace-listings');
+            const alertContainer = document.getElementById('alert-container');
+            
             try {
                 const res = await fetch('/api/terminal-feed?limit=500');
-                if (!res.ok) throw new Error("HTTP_ERR");
-                const { data } = await res.json();
+                const json = await res.json();
                 
-                if(!data || data.length === 0) {
-                    document.getElementById('marketplace-listings').innerHTML = "<p>FEED ONLINE: AWAITING INGESTION</p>";
-                    return;
-                }
+                // Alerting logic
+                alertContainer.innerHTML = json.source !== 'database' ? '<div class="warning">ALERT: STANDBY MODE ACTIVE - REAL-TIME INGESTION OFFLINE</div>' : '';
+                
+                document.getElementById('sys-status').innerText = `STATUS: ${json.source.toUpperCase()}`;
+                document.getElementById('deal-count').innerText = `DEALS: ${json.data.length}`;
+                document.getElementById('last-sync').innerText = `SYNC: ${new Date().toLocaleTimeString()}`;
 
-                document.getElementById('marketplace-listings').innerHTML = data.map(item => `
-                    <div class="deal-card" data-address="${item.address}">
-                        <h3>${item.address}</h3>
-                        <p style="color: #888; font-size: 14px;">Spread: ${item.delta_score}% | Basis: $${item.basis ? item.basis.toLocaleString() : 'N/A'}</p>
-                        <button class="btn-init">INITIALIZE UNDERWRITING</button>
-                    </div>
-                `).join('');
-            } catch(e) { 
-                document.getElementById('marketplace-listings').innerText = "CONNECTION_FAIL_RETRYING"; 
-            }
+                container.innerHTML = '';
+                json.data.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'deal-card';
+                    div.textContent = `ASSET: ${item.address} | SPREAD: ${item.delta_score || 'N/A'}%`;
+                    container.appendChild(div);
+                });
+            } catch(e) { container.innerText = "CRITICAL_FEED_FAILURE"; }
         }
-
-        document.addEventListener('click', (e) => {
-            if(e.target.matches('.btn-init')) {
-                const card = e.target.closest('.deal-card');
-                document.getElementById('modal-title').innerText = "VDR: " + card.dataset.address;
-                document.getElementById('vdr-modal').style.display = 'flex';
-            }
-        });
-
-        fetchFeed(); 
-        setInterval(fetchFeed, 30000);
-    </script>
-</body>
-</html>                document.getElementById('modal-title').innerText = "VDR: " + e.target.closest('.deal-card').dataset.address;
-                document.getElementById('vdr-modal').style.display = 'flex';
-            }
-        });
-        fetchFeed(); setInterval(fetchFeed, 30000);
+        setInterval(fetchFeed, 3000);
+        fetchFeed();
     </script>
 </body>
 </html>
