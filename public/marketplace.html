@@ -5,45 +5,32 @@
     <title>ASSET_DEAL_TAPE</title>
     <style>
         body { font-family: monospace; background: #000; color: #0f0; padding: 20px; }
-        #status-bar { border: 1px solid #0f0; padding: 10px; margin-bottom: 20px; display: flex; gap: 20px; font-size: 12px; }
         .deal-card { border: 1px solid #0f0; padding: 15px; margin-bottom: 10px; }
-        .warning { background: #500; color: #f00; padding: 10px; margin-bottom: 10px; }
+        .error-log { color: #f00; border: 1px solid #f00; padding: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <div id="status-bar">
-        <span id="sys-status">STATUS: INITIALIZING</span>
-        <span id="deal-count">DEALS: 0</span>
-        <span id="last-sync">SYNC: --:--</span>
-    </div>
-    <div id="alert-container"></div>
     <h1>// ACTIVE DEAL TAPE</h1>
+    <div id="status">STATUS: CONNECTING...</div>
     <div id="marketplace-listings"></div>
 
     <script>
         async function fetchFeed() {
-            const container = document.getElementById('marketplace-listings');
-            const alertContainer = document.getElementById('alert-container');
-            
             try {
-                const res = await fetch('/api/terminal-feed?limit=500');
+                const res = await fetch('/api/terminal-feed');
                 const json = await res.json();
                 
-                // Alerting logic
-                alertContainer.innerHTML = json.source !== 'database' ? '<div class="warning">ALERT: STANDBY MODE ACTIVE - REAL-TIME INGESTION OFFLINE</div>' : '';
-                
-                document.getElementById('sys-status').innerText = `STATUS: ${json.source.toUpperCase()}`;
-                document.getElementById('deal-count').innerText = `DEALS: ${json.data.length}`;
-                document.getElementById('last-sync').innerText = `SYNC: ${new Date().toLocaleTimeString()}`;
-
-                container.innerHTML = '';
-                json.data.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'deal-card';
-                    div.textContent = `ASSET: ${item.address} | SPREAD: ${item.delta_score || 'N/A'}%`;
-                    container.appendChild(div);
-                });
-            } catch(e) { container.innerText = "CRITICAL_FEED_FAILURE"; }
+                if (json.source === 'database') {
+                    document.getElementById('status').innerText = "STATUS: ONLINE (LIVE)";
+                    document.getElementById('marketplace-listings').innerHTML = json.data.map(item => `
+                        <div class="deal-card">ASSET: ${item.address} | BASIS: $${item.purchase_price || 0}</div>
+                    `).join('');
+                } else {
+                    document.getElementById('status').innerHTML = `<div class="error-log">SYSTEM ERROR: ${json.error || 'CONNECTION_REJECTED'}</div>`;
+                }
+            } catch(e) { 
+                document.getElementById('status').innerText = "SYSTEM_FAILURE: UNREACHABLE"; 
+            }
         }
         setInterval(fetchFeed, 3000);
         fetchFeed();
