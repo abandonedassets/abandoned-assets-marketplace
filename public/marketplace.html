@@ -8,6 +8,8 @@
         .error-banner { color: #f00; border: 1px solid #f00; padding: 15px; margin-bottom: 20px; font-weight: bold; }
         .diagnostic { color: #FFA500; font-size: 0.9em; margin-top: 10px; display: block; font-weight: normal; border-top: 1px dotted #f00; padding-top: 10px; }
         .deal-card { border: 1px solid #0f0; padding: 10px; margin-bottom: 10px; }
+        .terminal-line { margin: 0 0 6px; white-space: pre-wrap; }
+        .muted { color: #7aff7a; }
         #status { font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
     </style>
 </head>
@@ -17,61 +19,98 @@
     <div id="feed"></div>
 
     <script>
+        const statusDiv = document.getElementById('status');
+        const feedDiv = document.getElementById('feed');
+        const eventQueue = [];
+        let renderedKeys = new Set();
         let isPolling = false;
-        let lastMessageState = "";
+        let lastErrorState = '';
+
+        const money = value => {
+            const number = Number(value || 0);
+            if (!Number.isFinite(number) || number <= 0) return 'N/A';
+            return '$' + Math.round(number).toLocaleString();
+        };
+
+        const clean = value => String(value ?? '').replace(/[<>&"']/g, char => ({
+            '<': '&lt;',
+            '>': '&gt;',
+            '&': '&amp;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[char]));
+
+        const keyFor = item => String(item.id || item.property_id || item.address || JSON.stringify(item));
+
+        function enqueueLiveDeals(deals) {
+            deals.forEach(item => {
+                const key = keyFor(item);
+                if (!renderedKeys.has(key) && !eventQueue.some(event => event.key === key)) {
+                    eventQueue.push({ key, item });
+                }
+            });
+        }
+
+        function renderNextDeal() {
+            if (!eventQueue.length) return;
+            const { key, item } = eventQueue.shift();
+            renderedKeys.add(key);
+
+            const address = clean(item.address || 'UNKNOWN ADDRESS');
+            const city = clean(item.city || item.market || 'UNKNOWN MARKET');
+            const state = clean(item.state || '');
+            const basis = money(item.purchase_price || item.price || item.asking_price);
+            const arv = money(item.arv || item.after_repair_value);
+            const status = clean(item.status || item.assignment_status || 'LIVE');
+
+            const card = document.createElement('div');
+            card.className = 'deal-card';
+            card.innerHTML = `ASSET: ${address} | MARKET: ${city}${state ? ', ' + state : ''} | BASIS: ${basis} | ARV: ${arv} | STATUS: ${status}`;
+            feedDiv.prepend(card);
+
+            while (feedDiv.children.length > 50) feedDiv.removeChild(feedDiv.lastChild);
+            statusDiv.innerText = `SYSTEM STATUS: ONLINE | LIVE DEALS RENDERED: ${renderedKeys.size} | QUEUE: ${eventQueue.length}`;
+        }
 
         async function fetchFeed() {
-            if (isPolling) return; // Drop overlapping polls
+            if (isPolling) return;
             isPolling = true;
 
-            const statusDiv = document.getElementById('status');
-            const feedDiv = document.getElementById('feed');
-            
-            // Hard 10-second request timeout
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); 
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
 
             try {
                 const res = await fetch('/api/terminal-feed?limit=500', { signal: controller.signal });
                 clearTimeout(timeoutId);
                 const json = await res.json();
-                
-                if (json.status === "SUCCESS") {
-                    const messageHash = "SUCCESS_" + json.count + "_" + json.cached;
-                    if (lastMessageState !== messageHash) { // Suppress redundant re-renders
-                        statusDiv.innerText = `SYSTEM STATUS: ONLINE | DEALS: ${json.count} ${json.cached ? '[CACHED]' : ''}`;
-                        feedDiv.innerHTML = json.data.map(item => `
-                            <div class="deal-card">ASSET: ${item.address || 'UNKNOWN'} | BASIS: $${item.purchase_price || 0}</div>
-                        `).join('');
-                        lastMessageState = messageHash;
+
+                if (json.status === 'SUCCESS') {
+                    lastErrorState = '';
+                    enqueueLiveDeals(Array.isArray(json.data) ? json.data : []);
+                    statusDiv.innerText = `SYSTEM STATUS: ONLINE | DB DEALS: ${json.count || 0} ${json.cached ? '[CACHED]' : '[LIVE]'} | QUEUE: ${eventQueue.length}`;
+                    if (!feedDiv.children.length && !eventQueue.length) {
+                        feedDiv.innerHTML = '<p class="terminal-line muted">NO_ACTIVE_DEALS_FOUND. Waiting for Supabase records...</p>';
                     }
                 } else {
-                    const errorMsg = `CRITICAL_FAILURE: ${json.error || 'UNKNOWN_SERVER_ERROR'}`;
-                    if (lastMessageState !== errorMsg) {
-                        statusDiv.innerHTML = `
-                            <div class="error-banner">
-                                ${errorMsg}
-                                <span class="diagnostic">DIAGNOSTIC: ${json.diagnostic_hint || 'Check server logs.'}</span>
-                            </div>`;
-                        feedDiv.innerHTML = "";
-                        lastMessageState = errorMsg;
-                    }
+                    showError(json.error || 'UNKNOWN_SERVER_ERROR', json.diagnostic_hint || 'Check server logs.');
                 }
             } catch(e) {
                 clearTimeout(timeoutId);
-                const errorMsg = e.name === 'AbortError' ? 'CONNECTION_TIMEOUT_10S' : 'CONNECTION_REFUSED';
-                
-                if (lastMessageState !== errorMsg) {
-                    statusDiv.innerHTML = `<div class="error-banner">${errorMsg}</div>`;
-                    feedDiv.innerHTML = "";
-                    lastMessageState = errorMsg;
-                }
+                showError(e.name === 'AbortError' ? 'CONNECTION_TIMEOUT_10S' : 'CONNECTION_REFUSED', 'Terminal stream could not reach /api/terminal-feed.');
             } finally {
                 isPolling = false;
             }
         }
-        
-        setInterval(fetchFeed, 3000);
+
+        function showError(error, diagnostic) {
+            const state = `${error}|${diagnostic}`;
+            if (lastErrorState === state) return;
+            lastErrorState = state;
+            statusDiv.innerHTML = `<div class="error-banner">CRITICAL_FAILURE: ${clean(error)}<span class="diagnostic">DIAGNOSTIC: ${clean(diagnostic)}</span></div>`;
+        }
+
+        setInterval(fetchFeed, 30000);
+        setInterval(renderNextDeal, 1800);
         fetchFeed();
     </script>
 </body>
