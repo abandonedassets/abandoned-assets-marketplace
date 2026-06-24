@@ -1,0 +1,24 @@
+name: Institutional Heartbeat
+on:
+  schedule:
+    # This runs every 6 hours
+    - cron: '0 */6 * * *'
+  # Allows you to trigger it manually from the "Actions" tab if you want to test it
+  workflow_dispatch:
+
+jobs:
+  check-system:
+    runs-on: ubuntu-latest
+    steps:
+      - name: System Health Check
+        run: |
+          # Replace the URL below with your actual deployed app URL on Render
+          # This pings your server to ensure it is awake and responding
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://your-render-app-url.com/health || echo "000")
+          
+          if [ "$RESPONSE" != "200" ]; then
+            echo "SYSTEM ALERT: Heartbeat failed with status $RESPONSE"
+            exit 1
+          else
+            echo "System healthy: $RESPONSE"
+          fi
