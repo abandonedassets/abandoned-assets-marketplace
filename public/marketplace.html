@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-gray-100 p-8">
-    <div class="max-w-6xl mx-auto">
+    <div id="app" class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold mb-6">Institutional Deal Tape</h1>
         <div id="data-container">
             <p id="status">Loading deal data...</p>
@@ -15,34 +15,36 @@
     </div>
 
     <script>
-        console.log("Script initializing...");
-
+        // Initialize Supabase only once
         const SUPABASE_URL = 'https://midneooocykeoquxkjkrg.supabase.co';
-        // PASTE YOUR FULL KEY HERE:
-        const SUPABASE_KEY = 'PASTE_YOUR_FULL_ANON_KEY_HERE';
+        const SUPABASE_KEY = 'YOUR_FULL_ANON_KEY_HERE';
 
         const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log("Supabase client created.");
 
         async function init() {
+            const status = document.getElementById('status');
             try {
-                console.log("Attempting to fetch data...");
                 const { data, error } = await client
                     .from('qre_institutional_deal_tape')
-                    .select('address,market,state_module,cost_basis,arv_projection,status');
+                    .select('*');
 
                 if (error) throw error;
                 
-                console.log("Data retrieved:", data);
-                document.getElementById('status').innerText = "Data loaded successfully.";
-                // (Rendering logic would go here)
-                
+                if (!data || data.length === 0) {
+                    status.innerText = "No deals found.";
+                    return;
+                }
+
+                document.getElementById('data-container').innerHTML = data.map(item => `
+                    <div class="bg-white p-4 shadow rounded mb-4">
+                        <h3 class="font-bold">${item.address || 'Undisclosed'}</h3>
+                        <p>Market: ${item.market}</p>
+                    </div>
+                `).join('');
             } catch (err) {
-                console.error("Critical Failure:", err);
-                document.getElementById('status').innerText = "Error: " + err.message;
+                status.innerText = "Error: " + err.message;
             }
         }
-
         init();
     </script>
 </body>
