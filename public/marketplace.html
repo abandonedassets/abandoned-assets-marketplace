@@ -1,32 +1,42 @@
 <script>
-    // Correct initialization
-    const supabase = supabase.createClient('https://midneoooykeoquxkjkrg.supabase.co', 'sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd');
+  // Robust initialization: only create the client if it doesn't already exist
+  if (!window.supabaseClient) {
+    window.supabaseClient = supabase.createClient(
+      'https://midneoooykeoquxkjkrg.supabase.co', 
+      'sb_publishable_WH2in1zbqd1jNggd...'
+    );
+  }
+  const supabase = window.supabaseClient;
 
-    async function loadData() {
-        const container = document.getElementById('data-container');
-        
-        // Fetching from the new view
-        const { data, error } = await supabase
-            .from('qre_institutional_deal_tape')
-            .select('asset_id,address,market,state_module,cost_basis,arv_projection,micro_market,status');
-            
-        if (error) { 
-            console.error("Fetch Error:", error);
-            container.innerText = "Error loading data."; 
-            return; 
-        }
-        
-        // Rendering the new data structure
-        container.innerHTML = data.map(item => `
-            <div class="p-4 bg-white shadow rounded border border-slate-200">
-                <p class="font-bold">${item.address}</p>
-                <p class="text-slate-600">${item.market}, ${item.state_module}</p>
-                <p class="text-blue-900 font-semibold">Basis: $${item.cost_basis.toLocaleString()}</p>
-                <p class="text-blue-900 font-semibold">ARV: $${item.arv_projection.toLocaleString()}</p>
-                <p class="text-green-700">Status: ${item.status}</p>
-            </div>
-        `).join('');
+  async function loadData() {
+    const container = document.getElementById('data-container');
+    container.innerHTML = "Loading...";
+
+    const { data, error } = await supabase
+      .from('qre_institutional_deal_tape')
+      .select('asset_id,address,market,state_module,cost_basis,arv_projection,micro_market,status');
+
+    if (error) {
+      console.error("Fetch Error:", error);
+      container.innerHTML = "Error loading data.";
+      return;
     }
-    
-    loadData();
+
+    if (!data || data.length === 0) {
+      container.innerHTML = "No deals found.";
+      return;
+    }
+
+    container.innerHTML = data.map(item => `
+      <div class="deal-card">
+        <h3>${item.address}</h3>
+        <p>Market: ${item.market}, ${item.state_module}</p>
+        <p>Basis: $${item.cost_basis.toLocaleString()}</p>
+        <p>ARV: $${item.arv_projection.toLocaleString()}</p>
+        <p>Status: ${item.status}</p>
+      </div>
+    `).join('');
+  }
+
+  loadData();
 </script>
