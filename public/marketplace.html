@@ -1,38 +1,21 @@
-<!DOCTYPE html>
-<html>
-<body>
-    <div id="status">Testing Connection...</div>
-    <script>
-        // 1. COPY THE URL FROM YOUR DASHBOARD API SETTINGS (Must start with https://)
-        const PROJECT_URL = 'https://midneoocykeoquxkjkrg.supabase.co';
-        
-        // 2. COPY THE "ANONYMOUS API KEY" FROM YOUR DASHBOARD
-        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs';
+<script>
+    // YOUR PROJECT ID IS: midneooocykeoquxkjkrg
+    const URL = 'https://midneooocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs'; // Make sure this is the correct ANON key!
 
-        const FULL_URL = `${PROJECT_URL}/rest/v1/qre_institutional_deal_tape`;
-
-        fetch(FULL_URL, {
-            method: 'GET',
-            headers: {
-                'apikey': ANON_KEY,
-                'Authorization': `Bearer ${ANON_KEY}`,
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(res => {
-            if (res.ok) {
-                document.getElementById('status').innerText = "Status: Success (200)";
-                return res.json();
-            } else {
-                document.getElementById('status').innerText = "Status: Error (" + res.status + ")";
-                return res.text();
-            }
-        })
-        .then(data => console.log("Result:", data))
-        .catch(err => {
-            document.getElementById('status').innerText = "Network Error: " + err.message;
-            console.error(err);
-        });
-    </script>
-</body>
-</html>
+    fetch(URL, {
+        headers: { 
+            'apikey': ANON_KEY, 
+            'Authorization': `Bearer ${ANON_KEY}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => {
+        console.log("Response Status:", res.status);
+        return res.json();
+    })
+    .then(data => {
+        console.log("Data received:", data); // Check the console
+    })
+    .catch(err => console.error("Error:", err));
+</script>
