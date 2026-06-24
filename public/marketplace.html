@@ -1,117 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>ASSET_DEAL_TAPE</title>
-    <style>
-        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
-        .error-banner { color: #f00; border: 1px solid #f00; padding: 15px; margin-bottom: 20px; font-weight: bold; }
-        .diagnostic { color: #FFA500; font-size: 0.9em; margin-top: 10px; display: block; font-weight: normal; border-top: 1px dotted #f00; padding-top: 10px; }
-        .deal-card { border: 1px solid #0f0; padding: 10px; margin-bottom: 10px; }
-        .terminal-line { margin: 0 0 6px; white-space: pre-wrap; }
-        .muted { color: #7aff7a; }
-        #status { font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Private Deal Tape</title>
 </head>
-<body>
-    <h1>// ACTIVE DEAL TAPE</h1>
-    <div id="status">STATUS: INITIALIZING...</div>
-    <div id="feed"></div>
+<body class="bg-slate-900 text-white p-10">
+    <h1 class="text-3xl font-bold mb-6 text-red-500">PRIVATE DEAL TAPE</h1>
+    <div id="tape-container" class="space-y-4">Loading secure data...</div>
 
     <script>
-        const statusDiv = document.getElementById('status');
-        const feedDiv = document.getElementById('feed');
-        const eventQueue = [];
-        let renderedKeys = new Set();
-        let isPolling = false;
-        let lastErrorState = '';
+        const supabase = supabase.createClient('https://midneoooykeoquxkjkrg.supabase.co', 'YOUR_ANON_KEY_HERE');
 
-        const money = value => {
-            const number = Number(value || 0);
-            if (!Number.isFinite(number) || number <= 0) return 'N/A';
-            return '$' + Math.round(number).toLocaleString();
-        };
+        async function loadPrivateData() {
+            const { data, error } = await supabase.from('deals_master').select('*');
+            const container = document.getElementById('tape-container');
 
-        const clean = value => String(value ?? '').replace(/[<>&"']/g, char => ({
-            '<': '&lt;',
-            '>': '&gt;',
-            '&': '&amp;',
-            '"': '&quot;',
-            "'": '&#39;'
-        }[char]));
-
-        const keyFor = item => String(item.id || item.property_id || item.address || JSON.stringify(item));
-
-        function enqueueLiveDeals(deals) {
-            deals.forEach(item => {
-                const key = keyFor(item);
-                if (!renderedKeys.has(key) && !eventQueue.some(event => event.key === key)) {
-                    eventQueue.push({ key, item });
-                }
-            });
+            if (error) { container.innerText = "Access Denied / No Data"; return; }
+            
+            container.innerHTML = data.map(item => `
+                <div class="p-4 bg-slate-800 rounded border border-red-900">
+                    <p class="font-bold text-white">${item.address}</p>
+                    <p class="text-green-400">Projected Profit: ${item.arv_projection}</p>
+                </div>
+            `).join('');
         }
-
-        function renderNextDeal() {
-            if (!eventQueue.length) return;
-            const { key, item } = eventQueue.shift();
-            renderedKeys.add(key);
-
-            const address = clean(item.address || 'UNKNOWN ADDRESS');
-            const city = clean(item.city || item.market || 'UNKNOWN MARKET');
-            const state = clean(item.state || '');
-            const basis = money(item.purchase_price || item.price || item.asking_price);
-            const arv = money(item.arv || item.after_repair_value);
-            const status = clean(item.status || item.assignment_status || 'LIVE');
-
-            const card = document.createElement('div');
-            card.className = 'deal-card';
-            card.innerHTML = `ASSET: ${address} | MARKET: ${city}${state ? ', ' + state : ''} | BASIS: ${basis} | ARV: ${arv} | STATUS: ${status}`;
-            feedDiv.prepend(card);
-
-            while (feedDiv.children.length > 50) feedDiv.removeChild(feedDiv.lastChild);
-            statusDiv.innerText = `SYSTEM STATUS: ONLINE | LIVE DEALS RENDERED: ${renderedKeys.size} | QUEUE: ${eventQueue.length}`;
-        }
-
-        async function fetchFeed() {
-            if (isPolling) return;
-            isPolling = true;
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            try {
-                const res = await fetch('/api/terminal-feed?limit=500', { signal: controller.signal });
-                clearTimeout(timeoutId);
-                const json = await res.json();
-
-                if (json.status === 'SUCCESS') {
-                    lastErrorState = '';
-                    enqueueLiveDeals(Array.isArray(json.data) ? json.data : []);
-                    statusDiv.innerText = `SYSTEM STATUS: ONLINE | DB DEALS: ${json.count || 0} ${json.cached ? '[CACHED]' : '[LIVE]'} | QUEUE: ${eventQueue.length}`;
-                    if (!feedDiv.children.length && !eventQueue.length) {
-                        feedDiv.innerHTML = '<p class="terminal-line muted">NO_ACTIVE_DEALS_FOUND. Waiting for Supabase records...</p>';
-                    }
-                } else {
-                    showError(json.error || 'UNKNOWN_SERVER_ERROR', json.diagnostic_hint || 'Check server logs.');
-                }
-            } catch(e) {
-                clearTimeout(timeoutId);
-                showError(e.name === 'AbortError' ? 'CONNECTION_TIMEOUT_10S' : 'CONNECTION_REFUSED', 'Terminal stream could not reach /api/terminal-feed.');
-            } finally {
-                isPolling = false;
-            }
-        }
-
-        function showError(error, diagnostic) {
-            const state = `${error}|${diagnostic}`;
-            if (lastErrorState === state) return;
-            lastErrorState = state;
-            statusDiv.innerHTML = `<div class="error-banner">CRITICAL_FAILURE: ${clean(error)}<span class="diagnostic">DIAGNOSTIC: ${clean(diagnostic)}</span></div>`;
-        }
-
-        setInterval(fetchFeed, 30000);
-        setInterval(renderNextDeal, 1800);
-        fetchFeed();
+        loadPrivateData();
     </script>
 </body>
 </html>
