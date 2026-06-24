@@ -6,43 +6,20 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 p-8">
-    <div id="app" class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6">Institutional Deal Tape</h1>
-        <div id="data-container">
-            <p id="status">Loading deal data...</p>
-        </div>
-    </div>
-
+<body class="bg-gray-900 text-white p-8">
+    <div id="data-container">Loading deal data...</div>
     <script>
-        // Initialize Supabase only once
         const SUPABASE_URL = 'https://midneooocykeoquxkjkrg.supabase.co';
         const SUPABASE_KEY = 'YOUR_FULL_ANON_KEY_HERE';
-
         const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         async function init() {
-            const status = document.getElementById('status');
             try {
-                const { data, error } = await client
-                    .from('qre_institutional_deal_tape')
-                    .select('*');
-
+                const { data, error } = await client.from('qre_institutional_deal_tape').select('*');
                 if (error) throw error;
-                
-                if (!data || data.length === 0) {
-                    status.innerText = "No deals found.";
-                    return;
-                }
-
-                document.getElementById('data-container').innerHTML = data.map(item => `
-                    <div class="bg-white p-4 shadow rounded mb-4">
-                        <h3 class="font-bold">${item.address || 'Undisclosed'}</h3>
-                        <p>Market: ${item.market}</p>
-                    </div>
-                `).join('');
+                document.getElementById('data-container').innerHTML = JSON.stringify(data, null, 2);
             } catch (err) {
-                status.innerText = "Error: " + err.message;
+                document.getElementById('data-container').innerText = "Error: " + err.message;
             }
         }
         init();
