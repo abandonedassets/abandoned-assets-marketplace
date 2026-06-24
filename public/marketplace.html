@@ -2,57 +2,48 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Institutional Deal Tape</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-100 p-8 text-black">
+<body class="bg-gray-100 p-8">
     <div class="max-w-6xl mx-auto">
         <h1 class="text-3xl font-bold mb-6">Institutional Deal Tape</h1>
-        <div id="data-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <p>Loading deal data...</p>
+        <div id="data-container">
+            <p id="status">Loading deal data...</p>
         </div>
     </div>
 
     <script>
-        // Configuration
-        const supabaseUrl = 'https://midneooocykeoquxkjkrg.supabase.co';
-        const supabaseKey = 'PASTE_YOUR_FULL_ANON_KEY_HERE'; 
-        
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+        console.log("Script initializing...");
 
-        async function loadData() {
-            const container = document.getElementById('data-container');
-            
+        const SUPABASE_URL = 'https://midneooocykeoquxkjkrg.supabase.co';
+        // PASTE YOUR FULL KEY HERE:
+        const SUPABASE_KEY = 'PASTE_YOUR_FULL_ANON_KEY_HERE';
+
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log("Supabase client created.");
+
+        async function init() {
             try {
-                const { data, error } = await supabase
+                console.log("Attempting to fetch data...");
+                const { data, error } = await client
                     .from('qre_institutional_deal_tape')
                     .select('address,market,state_module,cost_basis,arv_projection,status');
 
                 if (error) throw error;
-
-                if (!data || data.length === 0) {
-                    container.innerHTML = '<p>No deals found in the database.</p>';
-                    return;
-                }
-
-                container.innerHTML = data.map(item => `
-                    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                        <h3 class="text-xl font-bold mb-2">${item.address || 'Undisclosed'}</h3>
-                        <p>Market: ${item.market}, ${item.state_module}</p>
-                        <p>Basis: $${(item.cost_basis || 0).toLocaleString()}</p>
-                        <p>ARV: $${(item.arv_projection || 0).toLocaleString()}</p>
-                        <span class="mt-2 inline-block bg-gray-200 px-2 py-1 rounded text-sm capitalize">${item.status || 'N/A'}</span>
-                    </div>
-                `).join('');
+                
+                console.log("Data retrieved:", data);
+                document.getElementById('status').innerText = "Data loaded successfully.";
+                // (Rendering logic would go here)
                 
             } catch (err) {
-                container.innerHTML = `<div class="bg-red-100 p-4 text-red-700">Error: ${err.message}</div>`;
+                console.error("Critical Failure:", err);
+                document.getElementById('status').innerText = "Error: " + err.message;
             }
         }
 
-        loadData();
+        init();
     </script>
 </body>
 </html>
