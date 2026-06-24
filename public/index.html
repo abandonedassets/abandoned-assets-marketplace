@@ -77,3 +77,26 @@
     </div>
 </body>
 </html>
+<script>
+  // 1. Initialize Supabase with your specific project keys
+  const supabase = supabase.createClient(
+    'https://midneoooykeoquxkjkrg.supabase.co', 
+    'sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd' 
+  );
+
+  // 2. Logic to show the secret link only if logged in
+  async function checkAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // If a session exists, the user is logged in
+    if (session) {
+      const dealTapeLink = document.getElementById('deal-tape-link');
+      if (dealTapeLink) {
+        dealTapeLink.style.display = 'inline-block';
+      }
+    }
+  }
+
+  // Run the check when the page loads
+  checkAuth();
+</script>
