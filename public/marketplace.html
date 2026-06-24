@@ -9,10 +9,7 @@
     <pre id="output">Waiting for data...</pre>
 
     <script>
-        // FIXED URL: No typos, no spaces
-        const URL = 'https://midneooocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape';
-        
-        // PASTE YOUR ACTUAL ANON KEY BETWEEN THESE QUOTES
+        const URL = 'https://midneoocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs'; 
 
         fetch(URL, {
@@ -29,11 +26,11 @@
         })
         .then(data => {
             document.getElementById('output').innerText = JSON.stringify(data, null, 2);
-            console.log("Data loaded successfully:", data);
+            console.log("SUCCESS:", data);
         })
         .catch(err => {
             document.getElementById('output').innerText = "Error: " + err.message;
-            console.error("Fetch failed:", err);
+            console.error("FAILED:", err);
         });
     </script>
 </body>
