@@ -3,29 +3,30 @@
 <head>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <title>Private Deal Tape</title>
+    <title>Marketplace</title>
 </head>
-<body class="bg-slate-900 text-white p-10">
-    <h1 class="text-3xl font-bold mb-6 text-red-500">PRIVATE DEAL TAPE</h1>
-    <div id="tape-container" class="space-y-4">Loading secure data...</div>
+<body class="bg-slate-50 p-10">
+    <h1 class="text-3xl font-bold mb-6">Available Assets</h1>
+    <div id="data-container" class="grid gap-4">Loading...</div>
 
     <script>
         const supabase = supabase.createClient('https://midneoooykeoquxkjkrg.supabase.co', 'YOUR_ANON_KEY_HERE');
 
-        async function loadPrivateData() {
-            const { data, error } = await supabase.from('deals_master').select('*');
-            const container = document.getElementById('tape-container');
-
-            if (error) { container.innerText = "Access Denied / No Data"; return; }
+        async function loadData() {
+            const { data, error } = await supabase.from('marketplace_listings').select('*');
+            const container = document.getElementById('data-container');
+            
+            if (error) { container.innerText = "Error loading data."; return; }
             
             container.innerHTML = data.map(item => `
-                <div class="p-4 bg-slate-800 rounded border border-red-900">
-                    <p class="font-bold text-white">${item.address}</p>
-                    <p class="text-green-400">Projected Profit: ${item.arv_projection}</p>
+                <div class="p-4 bg-white shadow rounded border border-slate-200">
+                    <p class="font-bold">${item.address}</p>
+                    <p class="text-slate-600">${item.category}</p>
+                    <p class="text-blue-900 font-semibold">${item.status}</p>
                 </div>
             `).join('');
         }
-        loadPrivateData();
+        loadData();
     </script>
 </body>
 </html>
