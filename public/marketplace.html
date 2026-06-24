@@ -1,42 +1,21 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html>
-<head>
-    <title>Deal Tape Data</title>
-</head>
 <body>
-    <h1>Institutional Deal Data</h1>
-    <pre id="output">Fetching data...</pre>
-
     <script>
-        // 1. THE URL (Verified with your project ID: midneooocykeoquxkjkrg)
         const URL = 'https://midneooocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape';
-        
-        // 2. INSERT YOUR ANON KEY HERE
-        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs';
+        // PASTE YOUR KEY DIRECTLY BETWEEN THE QUOTES BELOW
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs'; 
 
         fetch(URL, {
             method: 'GET',
             headers: {
                 'apikey': ANON_KEY,
-                'Authorization': `Bearer ${ANON_KEY}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${ANON_KEY}`
             }
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            // This puts the data right on your screen
-            document.getElementById('output').innerText = JSON.stringify(data, null, 2);
-            console.log("Success:", data);
-        })
-        .catch(error => {
-            document.getElementById('output').innerText = "Error: " + error.message;
-            console.error("Error:", error);
-        });
+        .then(res => res.json())
+        .then(data => console.log("DATA:", data))
+        .catch(err => console.error("FAILED:", err));
     </script>
 </body>
 </html>
