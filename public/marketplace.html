@@ -11,21 +11,31 @@
 
     <script>
         const supabase = supabase.createClient('https://midneoooykeoquxkjkrg.supabase.co', 'sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd');
+async function loadData() {
+    const container = document.getElementById('data-container');
+    
+    // Using the new view and guaranteed numeric fields
+    const { data, error } = await supabase
+        .from('qre_institutional_deal_tape')
+        .select('asset_id,address,market,state_module,cost_basis,arv_projection,micro_market,status');
 
-        async function loadData() {
-            const { data, error } = await supabase.from('marketplace_listings').select('*');
-            const container = document.getElementById('data-container');
-            
-            if (error) { container.innerText = "Error loading data."; return; }
-            
-            container.innerHTML = data.map(item => `
-                <div class="p-4 bg-white shadow rounded border border-slate-200">
-                    <p class="font-bold">${item.address}</p>
-                    <p class="text-slate-600">${item.category}</p>
-                    <p class="text-blue-900 font-semibold">${item.status}</p>
-                </div>
-            `).join('');
-        }
+    if (error) {
+        console.error("Fetch Error:", error);
+        container.innerHTML = "Error loading data.";
+        return;
+    }
+
+    // Displaying the clean, mapped data
+    container.innerHTML = data.map(item => `
+        <div class="deal-card">
+            <h3>${item.address}</h3>
+            <p>Market: ${item.market}, ${item.state_module}</p>
+            <p>Basis: $${item.cost_basis.toLocaleString()}</p>
+            <p>ARV: $${item.arv_projection.toLocaleString()}</p>
+            <p>Status: ${item.status}</p>
+        </div>
+    `).join('');
+}
         loadData();
     </script>
 </body>
