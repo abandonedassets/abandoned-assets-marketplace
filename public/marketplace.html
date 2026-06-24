@@ -1,28 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Institutional Deal Tape</title>
-    <!-- Tailwind CSS for styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body class="bg-gray-100 p-8">
-
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-3xl font-bold mb-6 text-gray-800">Institutional Deal Tape</h1>
+<script>
+        // 1. URL FIXED: Added the missing 'c' (midneooocy...)
+        const supabaseUrl = 'https://midneooocykeoquxkjkrg.supabase.co';
         
-        <!-- This is where the data will load -->
-        <div id="data-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <p class="text-gray-500 text-lg">Loading...</p>
-        </div>
-    </div>
-
-    <script>
-        // 1. We name this 'supabaseClient' (NOT 'supabase') to prevent the browser crash.
-        const supabaseUrl = 'https://midneoooykeoquxkjkrg.supabase.co';
+        // 2. IMPORTANT: Paste your ENTIRE key here. Do not leave the "..." at the end!
         const supabaseKey = 'sb_publishable_WH2in1zbqd1jNggd'; 
         
         const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
@@ -30,25 +10,21 @@
         async function loadData() {
             const container = document.getElementById('data-container');
 
-            // 2. Fetch from the new view using our safe client name
             const { data, error } = await supabaseClient
                 .from('qre_institutional_deal_tape')
                 .select('asset_id,address,market,state_module,cost_basis,arv_projection,micro_market,status');
 
-            // 3. Handle errors visibly on the screen, not just hidden in the console
             if (error) {
                 console.error("Fetch Error:", error);
                 container.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded"><p>Error loading data: ${error.message}</p></div>`;
                 return;
             }
 
-            // 4. Handle empty database
             if (!data || data.length === 0) {
                 container.innerHTML = `<div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded"><p>No deals found in the database.</p></div>`;
                 return;
             }
 
-            // 5. Draw the cards
             container.innerHTML = data.map(item => `
                 <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
                     <h3 class="text-xl font-bold text-gray-900 mb-2">${item.address}</h3>
@@ -62,8 +38,5 @@
             `).join('');
         }
 
-        // 6. Run the function
         loadData();
     </script>
-</body>
-</html>
