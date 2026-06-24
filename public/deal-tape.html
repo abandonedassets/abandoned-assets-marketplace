@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>Private Deal Tape</title>
+</head>
+<body class="bg-slate-900 text-white p-10">
+    <h1 class="text-3xl font-bold mb-6 text-red-500">PRIVATE DEAL TAPE</h1>
+    <div id="tape-container" class="space-y-4">Loading secure data...</div>
+
+    <script>
+        const supabase = supabase.createClient('https://midneoooykeoquxkjkrg.supabase.co', 'YOUR_ANON_KEY_HERE');
+
+        async function loadPrivateData() {
+            const { data, error } = await supabase.from('deals_master').select('*');
+            const container = document.getElementById('tape-container');
+
+            if (error) { container.innerText = "Access Denied / No Data"; return; }
+            
+            container.innerHTML = data.map(item => `
+                <div class="p-4 bg-slate-800 rounded border border-red-900">
+                    <p class="font-bold text-white">${item.address}</p>
+                    <p class="text-green-400">Projected Profit: ${item.arv_projection}</p>
+                </div>
+            `).join('');
+        }
+        loadPrivateData();
+    </script>
+</body>
+</html>
