@@ -2,36 +2,179 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Institutional Deal Tape</title>
+    <style>
+        body {
+            background-color: #0a0a0c;
+            color: #d4d4d8;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 2px solid #27272a;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            color: #f4f4f5;
+            font-size: 1.5rem;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .status {
+            color: #22c55e;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .tape-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .deal-card {
+            background-color: #18181b;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .deal-details {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .deal-name {
+            color: #ffffff;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .deal-time {
+            color: #71717a;
+            font-size: 0.8rem;
+        }
+        .deal-value {
+            color: #22c55e;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .deal-status {
+            background-color: #27272a;
+            color: #a1a1aa;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+    </style>
 </head>
 <body>
-    <h1>Institutional Deal Data</h1>
-    <pre id="output">Waiting for data...</pre>
+
+    <div class="header">
+        <h1>Institutional Deal Tape</h1>
+        <div class="status">
+            <div class="status-dot"></div>
+            LIVE STREAM ACTIVE
+        </div>
+    </div>
+
+    <div class="tape-container" id="tape">
+        <div style="color: #71717a;">Connecting to institutional datastream...</div>
+    </div>
 
     <script>
-        const URL = 'https://midneoocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape';
+        // Ordered by newest entries first
+        const URL = 'https://midneoocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape?order=created_at.desc';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs'; 
 
-        fetch(URL, {
-            method: 'GET',
-            headers: {
-                'apikey': ANON_KEY,
-                'Authorization': `Bearer ${ANON_KEY}`,
-                'Content-Type': 'application/json'
+        function fetchDeals() {
+            fetch(URL, {
+                method: 'GET',
+                headers: {
+                    'apikey': ANON_KEY,
+                    'Authorization': `Bearer ${ANON_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('Network synchronization failed');
+                return res.json();
+            })
+            .then(data => {
+                renderTape(data);
+            })
+            .catch(err => console.error("Feed connection error:", err));
+        }
+
+        function renderTape(deals) {
+            const container = document.getElementById('tape');
+            container.innerHTML = ''; 
+
+            if (deals.length === 0) {
+                container.innerHTML = '<div style="color: #71717a;">No active allocations found in tape payload.</div>';
+                return;
             }
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('Server returned status: ' + res.status);
-            return res.json();
-        })
-        .then(data => {
-            document.getElementById('output').innerText = JSON.stringify(data, null, 2);
-            console.log("SUCCESS:", data);
-        })
-        .catch(err => {
-            document.getElementById('output').innerText = "Error: " + err.message;
-            console.error("FAILED:", err);
-        });
+
+            deals.forEach(deal => {
+                const card = document.createElement('div');
+                card.className = 'deal-card';
+                
+                // Real-time financial string rendering
+                const formattedValue = new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    maximumFractionDigits: 0
+                }).format(deal.deal_value);
+
+                // Localized timing metrics
+                const date = new Date(deal.created_at);
+                const formattedTime = date.toLocaleTimeString() + ' | ' + date.toLocaleDateString();
+
+                card.innerHTML = `
+                    <div class="deal-details">
+                        <div class="deal-name">${deal.deal_name}</div>
+                        <div class="deal-time">${formattedTime}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="deal-status">${deal.status}</span>
+                        <div class="deal-value">${formattedValue}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Run immediately on page initialization
+        fetchDeals();
+
+        // Establishes continuous background syncing loop every 5000ms
+        setInterval(fetchDeals, 5000);
     </script>
 </body>
 </html>
