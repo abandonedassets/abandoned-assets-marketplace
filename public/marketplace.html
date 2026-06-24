@@ -1,21 +1,15 @@
-        <!DOCTYPE html>
-<html>
-<body>
-    <script>
-        const URL = 'https://midneooocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape';
-        // PASTE YOUR KEY DIRECTLY BETWEEN THE QUOTES BELOW
-        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs'; 
+<script>
+    const URL = 'https://midneooocykeoquxkjkrg.supabase.co/rest/v1/qre_institutional_deal_tape';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs'; 
 
-        fetch(URL, {
-            method: 'GET',
-            headers: {
-                'apikey': ANON_KEY,
-                'Authorization': `Bearer ${ANON_KEY}`
-            }
-        })
-        .then(res => res.json())
-        .then(data => console.log("DATA:", data))
-        .catch(err => console.error("FAILED:", err));
-    </script>
-</body>
-</html>
+    fetch(URL, {
+        method: 'GET',
+        headers: {
+            'apikey': ANON_KEY,
+            'Authorization': `Bearer ${ANON_KEY}`
+        }
+    })
+    .then(res => res.json())
+    .then(data => console.log("SUCCESS:", data))
+    .catch(err => console.error("FAILED:", err));
+</script>
