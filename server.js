@@ -1,33 +1,43 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
-const axios = require('axios');
-const cheerio = require('cheerio');
-
 const app = express();
-app.use(express.json());
+const port = process.env.PORT || 3000;
 
-// Initialize Supabase Client
-// This pulls directly from the Environment Variables you set in Render
+// Initialize Supabase (Use your env variables)
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Root Health Check - This clears the 404 error
-app.get('/', (req, res) => {
-    res.status(200).send("Juggernaut Engine is Online and Operational.");
+// --- AUTH GATE MIDDLEWARE ---
+const authMiddleware = (req, res, next) => {
+  const passcode = req.headers['x-passcode']; // Passcode sent in header
+  if (passcode === '120202') {
+    next();
+  } else {
+    res.status(401).send('Unauthorized: Invalid Passcode');
+  }
+};
+
+// --- ROUTES ---
+
+// Protected Route: Returns filtered deals
+app.get('/api/deals', authMiddleware, async (req, res) => {
+  try {
+    // --- THE FILTER FIX ---
+    // Excludes 'manual_entry' sources from the public feed
+    const { data, error } = await supabase
+      .from('properties_raw')
+      .select('*')
+      .neq('source', 'manual_entry'); 
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// Placeholder Ingestion Route 
-// Add your specific business logic here as you develop
-app.post('/api/ingest', async (req, res) => {
-    try {
-        // Example: logic to process data would go here
-        res.status(200).json({ message: "Data received by engine." });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+// Serve your static frontend files
+app.use(express.static('public'));
 
-// Server Initialization
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`System Online. Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
