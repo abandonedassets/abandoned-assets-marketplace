@@ -4,17 +4,20 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANO
 
 async function getProperties(req, res) {
     try {
-        // We removed the .neq('source', 'manual_entry') filter
-        // Now you will see EVERYTHING in your database
+        // This command selects ALL data from the table with NO filters
         const { data, error } = await supabase
             .from('properties_raw')
             .select('*');
 
-        if (error) throw error;
-        
+        if (error) {
+            console.error("Supabase Error:", error);
+            return res.status(500).json({ error: error.message });
+        }
+
+        // Send all the data found
         res.json(data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    } catch (err) {
+        res.status(500).send("Internal Server Error");
     }
 }
 
