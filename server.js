@@ -1,46 +1,37 @@
 require('dotenv').config();
-const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
-const app = express();
+const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
+const { handleAutoLogin } = require('./auto-login');
 
+const app = express();
 app.use(express.json());
+app.use(express.static('public'));
+
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-// 1. Force Login Check for the /alpha route
+// Login wall for the alpha page
 app.get('/alpha', (req, res) => {
-    // If you haven't logged in, redirect to login page
-    // Change 'loggedIn' to your specific cookie/session logic if needed
-    if (!req.headers.cookie || !req.headers.cookie.includes('authenticated=true')) {
-        return res.sendFile(path.join(__dirname, 'login.html'));
+    if (req.headers.cookie && req.headers.cookie.includes('authenticated=true')) {
+        res.sendFile(path.join(__dirname, 'alpha.html'));
+    } else {
+        res.sendFile(path.join(__dirname, 'login.html'));
     }
-    res.sendFile(path.join(__dirname, 'alpha.html')); 
 });
 
-// 2. Fetch Data (No filters, raw access)
+// Authentication endpoint
+app.post('/api/login', handleAutoLogin);
+
+// Raw Data endpoint (NO FILTERS)
 app.get('/api/data', async (req, res) => {
     try {
-        const { data, error } = await supabase
-            .from('properties_raw')
-            .select('*');
-
-        if (error) {
-            console.error("Supabase Error:", error);
-            return res.status(500).json({ error: error.message });
-        }
-
-        console.log("DEBUG: Data fetched from Supabase:", data ? data.length : 0, "rows found.");
-        res.json(data || []);
+        const { data, error } = await supabase.from('properties_raw').select('*');
+        if (error) throw error;
+        res.json(data);
     } catch (err) {
-        console.error("Server Error:", err);
-        res.status(500).send("Internal Server Error");
+        res.status(500).json({ error: err.message });
     }
 });
 
-// 3. Static Files
-app.use(express.static(path.join(__dirname, 'public')));
-
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
