@@ -10,18 +10,21 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.get('/api/data', async (req, res) => {
   try {
+    // This query is now hard-coded to ignore 'manual_entry'
     const { data, error } = await supabase
       .from('properties_raw')
       .select('*')
       .neq('source', 'manual_entry');
 
     if (error) {
+      console.error("Fetch Error:", error);
       return res.status(500).json({ error: error.message });
     }
 
     res.json(data);
     
   } catch (err) {
+    console.error("System Error:", err);
     res.status(500).send("Internal Server Error");
   }
 });
