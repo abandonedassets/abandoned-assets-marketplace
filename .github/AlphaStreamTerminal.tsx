@@ -1,31 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-
-interface Deal {
-  id: string;
-  address: string;
-  status: string;
-  gross_arbitrage_spread: number;
-  contract_status: string;
-}
+import { supabase } from '../supabaseClient'; // Adjust path if needed
 
 export default function AlphaStreamTerminal() {
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [debug, setDebug] = useState<string>('');
 
   useEffect(() => {
     const fetchDeals = async () => {
       setLoading(true);
-      // Querying the confirmed table 'deals_master'
+      // Fetch everything without filters to see if we get anything
       const { data, error } = await supabase
         .from('deals_master')
-        .select('id, address, status, gross_arbitrage_spread, contract_status')
-        .or('status.ilike.%escrow%,status.ilike.%pending%');
+        .select('*')
+        .limit(5); // Just grab 5 to test
       
       if (error) {
-        console.error("Error fetching deals:", error);
-      } else if (data) {
-        setDeals(data);
+        setDebug("ERROR: " + JSON.stringify(error));
+        console.error("Supabase Error:", error);
+      } else {
+        setDeals(data || []);
+        setDebug("Fetched " + data?.length + " rows.");
       }
       setLoading(false);
     };
@@ -33,38 +28,14 @@ export default function AlphaStreamTerminal() {
     fetchDeals();
   }, []);
 
-  if (loading) return <div className="p-4 text-white">Loading Terminal...</div>;
-
   return (
-    <div className="w-full p-6 bg-black min-h-screen text-white">
-      <h1 className="text-2xl font-bold mb-6">Alpha Stream Terminal</h1>
+    <div className="p-10 bg-black text-white min-h-screen">
+      <h1 className="text-xl font-bold">Diagnostic Mode</h1>
+      <p className="text-yellow-400">Status: {debug}</p>
       
-      <table className="w-full text-left border-collapse border border-gray-800">
-        <thead>
-          <tr className="bg-gray-900 border-b border-gray-700 text-gray-400 uppercase text-xs tracking-wider">
-            <th className="p-4">Address</th>
-            <th className="p-4">Status</th>
-            <th className="p-4">Contract</th>
-            <th className="p-4">Spread</th>
-          </tr>
-        </thead>
-        <tbody>
-          {deals.length > 0 ? (
-            deals.map((deal) => (
-              <tr key={deal.id} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                <td className="p-4 font-medium">{deal.address}</td>
-                <td className="p-4 text-blue-400 capitalize">{deal.status}</td>
-                <td className="p-4">{deal.contract_status}</td>
-                <td className="p-4 text-green-400">${deal.gross_arbitrage_spread?.toLocaleString()}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={4} className="p-8 text-center text-gray-500">No escrow/pending deals found.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="mt-4 p-4 bg-gray-900 font-mono text-xs overflow-auto">
+        <pre>{JSON.stringify(deals, null, 2)}</pre>
+      </div>
     </div>
   );
 }
