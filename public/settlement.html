@@ -15,6 +15,15 @@
     </style>
 </head>
 <body class="terminal-bg text-gray-300 font-mono min-h-screen p-6">
+    <!-- Passcode Overlay -->
+    <div id="passcode-overlay" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+        <div class="bg-gray-900 p-8 rounded-xl border border-gray-800 shadow-2xl text-center">
+            <h2 class="text-xl font-bold text-white mb-6 tracking-widest uppercase">Access Required</h2>
+            <input type="password" id="passcode-input" class="bg-black border border-gray-800 rounded px-4 py-2 text-center text-2xl tracking-[1em] text-green-500 focus:outline-none focus:border-green-500 w-48 mb-6" maxlength="4">
+            <div id="passcode-error" class="text-red-500 text-[10px] mb-4 hidden uppercase">Invalid Authorization Code</div>
+            <p class="text-[10px] text-gray-600 uppercase">Secure Juggernaut Terminal</p>
+        </div>
+    </div>
     <!-- Header Section -->
     <div class="max-w-7xl mx-auto flex justify-between items-center border-b border-gray-800 pb-4 mb-8">
         <div>
@@ -133,8 +142,24 @@
             document.getElementById('escrow-volume').innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(volume);
         }
 
-        fetchSettlements();
-        setInterval(fetchSettlements, 10000);
+        const CORRECT_CODE = '4321';
+        const input = document.getElementById('passcode-input');
+        const overlay = document.getElementById('passcode-overlay');
+        const error = document.getElementById('passcode-error');
+
+        input.focus();
+        input.addEventListener('input', (e) => {
+            if (e.target.value.length === 4) {
+                if (e.target.value === CORRECT_CODE) {
+                    overlay.style.display = 'none';
+                    fetchSettlements();
+                    setInterval(fetchSettlements, 10000);
+                } else {
+                    error.classList.remove('hidden');
+                    e.target.value = '';
+                }
+            }
+        });
     </script>
 </body>
 </html>
