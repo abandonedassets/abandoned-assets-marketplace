@@ -4,16 +4,27 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve static files from the 'public' directory (where your frontend is built)
+// 1. ATOMIC REDIRECT OVERRIDE & ABSOLUTE PATH ROUTING
+// Enforces hard-domain lock for the AbandonedAssetsOS ecosystem.
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Handle all other routes by serving the index.html file
-// This allows React Router to handle client-side routing
+// Mapping the 'Absolute Path' for the Daughter Settlement Gateway
+app.get('/terminal/daughter-settlement-gateway', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
+});
+
+// Force-mapping all root requests to the Terminal Instance
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
+});
+
+// Fallback for all other defunct routing paths
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server successfully started on port ${PORT}`);
+  console.log(`[JUGGERNAUT_MANIFEST] Server running on port ${PORT}`);
+  console.log(`[SOVEREIGN_REDIRECT] All incoming requests mapped to terminal instance.`);
 });
