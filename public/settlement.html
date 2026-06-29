@@ -91,6 +91,9 @@
         const SUPABASE_URL = 'https://midneoocykeoquxkjkrg.supabase.co';
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwMzA4OTcsImV4cCI6MjA5MjYwNjg5N30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs';
 
+        let authFailures = 0;
+        let cooldownActive = false;
+
         function updateClock() {
             const now = new Date();
             document.getElementById('system-clock').innerText = now.toISOString().split('T')[1].split('.')[0];
@@ -148,15 +151,29 @@
         const error = document.getElementById('passcode-error');
 
         input.focus();
-        input.addEventListener('input', (e) => {
+        input.addEventListener('input', async (e) => {
+            if (cooldownActive) return;
+            
             if (e.target.value.length === 6) {
                 if (e.target.value === CORRECT_CODE) {
                     overlay.style.display = 'none';
                     fetchSettlements();
                     setInterval(fetchSettlements, 10000);
                 } else {
+                    authFailures++;
+                    error.innerText = `Invalid Authorization Code. Wait ${authFailures * 2}s.`;
                     error.classList.remove('hidden');
                     e.target.value = '';
+                    
+                    // SLOW-AUTH ESCALATION
+                    cooldownActive = true;
+                    input.disabled = true;
+                    setTimeout(() => {
+                        cooldownActive = false;
+                        input.disabled = false;
+                        input.focus();
+                        error.classList.add('hidden');
+                    }, authFailures * 2000);
                 }
             }
         });
