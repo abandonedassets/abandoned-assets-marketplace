@@ -8,15 +8,27 @@ const PORT = process.env.PORT || 3000;
 // Enforces hard-domain lock for the AbandonedAssetsOS ecosystem.
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Mapping the 'Absolute Path' for the Daughter Settlement Gateway
-app.get('/terminal/daughter-settlement-gateway', (req, res) => {
+// JUGGERNAUT-STANDARD: STATIC ROUTING MANIFEST (NASA-LEVEL ACCURACY)
+// Enforces hard-domain lock and bypasses defunct routing fragments.
+
+const serveSettlement = (req, res) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store'
+  });
   res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
-});
+};
+
+// Mapping the 'Absolute Path' for the Daughter Settlement Gateway
+app.get('/terminal/daughter-settlement-gateway', serveSettlement);
 
 // Force-mapping all root requests to the Terminal Instance
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
-});
+app.get('/', serveSettlement);
+
+// Explicit mapping for abandonedasset.online routing fragments
+app.get('/index.html', serveSettlement);
 
 // Fallback for all other defunct routing paths
 app.get('*', (req, res) => {
