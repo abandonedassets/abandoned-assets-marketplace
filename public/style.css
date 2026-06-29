@@ -18,3 +18,12 @@
 }
 
 /* Utility overrides if needed */
+
+@keyframes border-pulse {
+  0% { border-color: rgba(74, 222, 128, 0.2); }
+  50% { border-color: rgba(74, 222, 128, 1); }
+  100% { border-color: rgba(74, 222, 128, 0.2); }
+}
+.animate-pulse-border {
+  animation: border-pulse 1.5s ease-in-out;
+}
