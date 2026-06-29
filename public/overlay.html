@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body style="background: #000; margin:0; overflow:hidden;">
+<canvas id="canvas" style="display:block;"></canvas>
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const socket = new WebSocket('ws://' + window.location.hostname + ':8080');
+    
+    socket.onmessage = (event) => {
+        const { type } = JSON.parse(event.data);
+        if (type === 'BUYER_SIGNED' || type === 'SELLER_SIGNED') {
+            triggerWavefront();
+        }
+    };
+
+    function triggerWavefront() {
+        ctx.fillStyle = "rgba(255, 165, 0, 0.2)";
+        ctx.beginPath();
+        ctx.arc(canvas.width/2, canvas.height/2, 500, 0, Math.PI*2);
+        ctx.fill();
+        // Add kinetic pulse logic here
+        setTimeout(() => ctx.clearRect(0,0, canvas.width, canvas.height), 200);
+    }
+</script>
+</body>
+</html>
