@@ -1,24 +1,30 @@
 const express = require('express');
-const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 1. HARDCODED DATA FOR MAXIMUM RELIABILITY (JUGGERNAUT CORE)
+// 1. FULL INVENTORY MANIFEST (99.9% PROBABILITY LOCK)
 const assets = [
     { id: "77291", name: "Aurora Commercial Pad", state: "SETTLEMENT_READY", b: 1, s: 1, a: 1, val: 125000 },
     { id: "99120", name: "Courtyard Cir.", state: "ESCROW_VELOCITY", b: 1, s: 0, a: 1, val: 45000 },
-    { id: "44102", name: "Institutional Portfolio X", state: "BUYER_MATCHED", b: 1, s: 1, a: 0, val: 85000 }
+    { id: "44102", name: "Institutional Portfolio X", state: "BUYER_MATCHED", b: 1, s: 1, a: 0, val: 85000 },
+    { id: "11204", name: "Lakeside Industrial Hub", state: "CONTRACT_EXECUTED", b: 1, s: 1, a: 1, val: 250000 },
+    { id: "88321", name: "Sunset Ridge Estates", state: "ACQUISITION", b: 0, s: 1, a: 0, val: 150000 },
+    { id: "22345", name: "Midtown Office Complex", state: "SETTLEMENT_READY", b: 1, s: 1, a: 1, val: 450000 },
+    { id: "33456", name: "Harbor View Condos", state: "BUYER_MATCHED", b: 1, s: 0, a: 1, val: 95000 },
+    { id: "44567", name: "Tech Park Phase II", state: "ESCROW_VELOCITY", b: 1, s: 1, a: 0, val: 320000 },
+    { id: "55678", name: "Riverfront Retail", state: "ACQUISITION", b: 0, s: 0, a: 1, val: 110000 },
+    { id: "66789", name: "Mountain Pass Lodge", state: "CONTRACT_EXECUTED", b: 1, s: 1, a: 1, val: 185000 }
 ];
 
-// 2. SERVER-SIDE INJECTION ENGINE (ZERO LATENCY)
+// 2. ULTRA-DENSE SSR ENGINE
 app.get(['/', '/settlement.html'], (req, res) => {
     const totalEquity = assets.reduce((sum, a) => sum + a.val, 12542000);
     
     let cards = assets.map(a => `
-        <div class="card" style="border-left: 8px solid ${a.state === 'SETTLEMENT_READY' ? '#ffd700' : (a.state === 'ESCROW_VELOCITY' ? '#ffbf00' : '#bc13fe')}">
+        <div class="card" style="border-left: 6px solid ${a.state === 'SETTLEMENT_READY' ? '#0f0' : (a.state === 'ACQUISITION' ? '#bc13fe' : '#00d2ff')}">
             <div class="header">
                 <span class="name">${a.name}</span>
-                <span class="badge" style="background: ${a.state === 'SETTLEMENT_READY' ? 'rgba(255,215,0,0.2)' : 'rgba(255,255,255,0.1)'}; color: ${a.state === 'SETTLEMENT_READY' ? '#ffd700' : '#fff'}">${a.state}</span>
+                <span class="badge">${a.state}</span>
             </div>
             <div class="val">+$${a.val.toLocaleString()}</div>
             <div class="footer">
@@ -27,7 +33,7 @@ app.get(['/', '/settlement.html'], (req, res) => {
                     <span class="orb ${a.s ? 'active' : ''}">S</span>
                     <span class="orb ${a.a ? 'active' : ''}">A</span>
                 </div>
-                <div class="velo-tag">${a.state === 'SETTLEMENT_READY' ? 'OPTIMAL' : 'MONITORING'}</div>
+                <div class="id">#${a.id}</div>
             </div>
         </div>`).join('');
     
@@ -36,59 +42,26 @@ app.get(['/', '/settlement.html'], (req, res) => {
     <html lang="en">
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>JUGGERNAUT | ULTIMATE HYBRID TERMINAL</title>
         <style>
-            body { 
-                background: #000; 
-                color: #fff; 
-                font-family: 'Courier New', monospace; 
-                margin: 0; 
-                padding: 15px; 
-                width: 100vw; 
-                box-sizing: border-box;
-                overflow-x: hidden;
-            }
-            .ticker { 
-                text-align: center; 
-                margin-bottom: 20px; 
-                border-bottom: 1px solid #333; 
-                padding-bottom: 10px; 
-            }
-            .totalizer { 
-                font-size: 1.8rem; 
-                font-weight: bold; 
-                color: #ffd700; 
-                text-shadow: 0 0 10px rgba(255,215,0,0.5);
-            }
-            .card { 
-                border: 1px solid #333; 
-                padding: 20px; 
-                margin-bottom: 15px; 
-                border-radius: 12px; 
-                background: #0a0a0a; 
-                width: 100%; 
-                box-sizing: border-box;
-                word-wrap: break-word;
-            }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-            .name { font-size: 1rem; font-weight: bold; color: #bc13fe; }
-            .badge { font-size: 0.6rem; padding: 3px 8px; border-radius: 4px; font-weight: bold; white-space: nowrap; }
-            .val { font-size: 2rem; margin: 15px 0; color: #0f0; font-weight: bold; }
+            body { background: #000; color: #fff; font-family: monospace; margin: 0; padding: 10px; width: 100vw; overflow-x: hidden; box-sizing: border-box; }
+            .ticker { border-bottom: 1px solid #333; padding: 10px; margin-bottom: 20px; text-align: center; }
+            .total { font-size: 1.5rem; color: #ffd700; font-weight: bold; }
+            .card { background: #0a0a0a; border: 1px solid #222; padding: 15px; margin-bottom: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 5px; }
+            .name { font-size: 0.8rem; font-weight: bold; color: #00ffff; }
+            .badge { font-size: 0.5rem; background: #222; padding: 2px 5px; border-radius: 3px; white-space: nowrap; }
+            .val { font-size: 1.6rem; color: #0f0; margin: 10px 0; font-weight: bold; }
             .footer { display: flex; justify-content: space-between; align-items: center; }
-            .sig { display: flex; gap: 8px; }
-            .orb { 
-                width: 25px; height: 25px; border-radius: 50%; border: 1px solid #444; 
-                display: flex; align-items: center; justify-content: center; 
-                font-size: 0.7rem; opacity: 0.3; font-weight: bold;
-            }
-            .orb.active { opacity: 1; border-color: #0f0; color: #0f0; box-shadow: 0 0 10px rgba(0,255,0,0.3); }
-            .velo-tag { font-size: 0.6rem; color: #555; letter-spacing: 1px; }
+            .sig { display: flex; gap: 5px; }
+            .orb { width: 18px; height: 18px; border: 1px solid #444; border-radius: 50%; font-size: 0.5rem; display: flex; align-items: center; justify-content: center; opacity: 0.3; }
+            .orb.active { opacity: 1; border-color: #0f0; color: #0f0; box-shadow: 0 0 5px #0f0; }
+            .id { font-size: 0.5rem; color: #444; }
         </style>
     </head>
     <body>
         <div class="ticker">
-            <div style="font-size: 0.6rem; color: #555; text-transform: uppercase; letter-spacing: 2px;">Total Pipeline Equity</div>
-            <div class="totalizer">$${totalEquity.toLocaleString()}</div>
+            <div style="font-size: 0.5rem; color: #555; letter-spacing: 2px;">TOTAL LIQUIDITY VOLUME</div>
+            <div class="total">$${totalEquity.toLocaleString()}</div>
         </div>
         ${cards}
     </body>
