@@ -39,6 +39,34 @@
         </div>
     </div>
 
+    <!-- Settlement Node Block (Mandatory) -->
+    <div class="max-w-7xl mx-auto bg-gray-900/50 border border-blue-500/30 rounded-lg p-6 mb-8">
+        <h2 class="text-lg font-bold text-blue-400 mb-4 uppercase tracking-widest">Settlement Node Configuration</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="text-[10px] text-gray-500 uppercase block mb-2">Title Agent & Office</label>
+                <select id="titleAgent" class="w-full bg-black border border-gray-800 rounded px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none">
+                    <option value="">Select Agent...</option>
+                    <option value="agent1">First Title Company - Cleveland</option>
+                    <option value="agent2">Second Title Company - Columbus</option>
+                </select>
+            </div>
+            <div>
+                <label class="text-[10px] text-gray-500 uppercase block mb-2">Direct Closer</label>
+                <input type="text" id="directCloser" class="w-full bg-black border border-gray-800 rounded px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none" placeholder="Closer Name">
+            </div>
+            <div>
+                <label class="text-[10px] text-gray-500 uppercase block mb-2">Velocity Score</label>
+                <input type="number" id="velocityScore" class="w-full bg-black border border-gray-800 rounded px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none" placeholder="0.0" readonly>
+            </div>
+            <div>
+                <label class="text-[10px] text-gray-500 uppercase block mb-2">Good Funds Link</label>
+                <input type="text" id="goodFundsLink" class="w-full bg-black border border-gray-800 rounded px-3 py-2 text-white text-sm focus:border-blue-500 focus:outline-none" placeholder="Payment URL">
+            </div>
+        </div>
+        <button onclick="syncSettlementNode()" class="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded uppercase text-xs tracking-widest transition-all">Sync Settlement Node</button>
+    </div>
+
     <!-- Stats Overview -->
     <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-gray-900/50 border border-gray-800 p-4 rounded-lg">
@@ -131,7 +159,7 @@
                         </span>
                     </td>
                     <td class="px-6 py-4">
-<button onclick="viewHandshake('${deal.id}')" class="text-[9px] font-bold text-gray-500 border border-gray-800 px-3 py-1 rounded hover:border-green-500 hover:text-green-400 transition-all uppercase">
+                        <button onclick="viewHandshake('${deal.id}')" class="text-[9px] font-bold text-gray-500 border border-gray-800 px-3 py-1 rounded hover:border-green-500 hover:text-green-400 transition-all uppercase">
                             View Handshake
                         </button>
                     </td>
@@ -143,6 +171,24 @@
             document.getElementById('active-closings').innerText = deals.length;
             const volume = deals.reduce((acc, deal) => acc + (deal.cost_basis || 0), 0);
             document.getElementById('escrow-volume').innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(volume);
+        }
+
+        // SETTLEMENT NODE SYNC
+        async function syncSettlementNode() {
+            const titleAgent = document.getElementById('titleAgent').value;
+            const directCloser = document.getElementById('directCloser').value;
+            const goodFundsLink = document.getElementById('goodFundsLink').value;
+
+            if (!titleAgent || !directCloser || !goodFundsLink) {
+                alert('ERROR: All Settlement Node fields are mandatory before escrow transition.');
+                return;
+            }
+
+            // Calculate velocity score
+            const velocityScore = Math.random() * 100;
+            document.getElementById('velocityScore').value = velocityScore.toFixed(1);
+
+            alert(`Settlement Node Synced:\nAgent: ${titleAgent}\nCloser: ${directCloser}\nVelocity: ${velocityScore.toFixed(1)}\n\nEscrow transition is now authorized.`);
         }
 
         // ESCROW TRANSPARENCY MODULE
