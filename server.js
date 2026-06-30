@@ -6,20 +6,22 @@ const PORT = process.env.PORT || 3000;
 
 // 1. ATOMIC REDIRECT OVERRIDE & ABSOLUTE PATH ROUTING
 // Enforces hard-domain lock for the AbandonedAssetsOS ecosystem.
-app.use(express.static(__dirname)); // Serve from root
-app.use(express.static(path.join(__dirname, 'public'))); // Serve from public
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // JUGGERNAUT-STANDARD: STATIC ROUTING MANIFEST (NASA-LEVEL ACCURACY)
 // Enforces hard-domain lock and bypasses defunct routing fragments.
 
 const serveSettlement = (req, res) => {
+  const filePath = path.join(__dirname, 'public', 'settlement.html');
+  console.log(`[ROUTING_LOG] Serving: ${filePath}`);
   res.set({
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
     'Pragma': 'no-cache',
     'Expires': '0',
     'Surrogate-Control': 'no-store'
   });
-  res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
+  res.sendFile(filePath);
 };
 
 // Mapping the 'Absolute Path' for the Daughter Settlement Gateway
