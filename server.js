@@ -3,104 +3,82 @@ const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 1. SUPABASE CONNECTION (SECURE ENVIRONMENT INJECTION)
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Initialize Supabase Connection
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// 2. ULTIMATE HYBRID SSR ENGINE (99.99% PROBABILITY)
+// Middleware: Titanic Cache-Busting (Prevents infrastructure drift)
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    next();
+});
+
 app.get(['/', '/settlement.html'], async (req, res) => {
     try {
-        const { data: assets, error } = await supabase
-            .from('deals_master')
-            .select('*')
-            .order('created_at', { ascending: false });
-
+        // Data Fetch: Aggregating all records from deals_master
+        const { data: assets, error } = await supabase.from('deals_master').select('*');
+        
         if (error) throw error;
 
-        const totalEquity = assets.reduce((sum, a) => sum + (a.gross_arbitrage_spread || 0), 0);
+        // Liquidity Calc: Titanic Precision
+        const totalLiquidity = (assets || []).reduce((sum, a) => sum + (Number(a.gross_arbitrage_spread) || 0), 0).toLocaleString();
         
-        let cards = assets.map(a => {
-            const statusMap = {
-                'pending': 'ACQUISITION',
-                'ingested': 'BUYER_MATCHED',
-                'escrow': 'ESCROW_VELOCITY',
-                'paid': 'POSITION_CLOSED'
-            };
-            const displayStatus = (a.status || 'pending').toLowerCase();
-            const hydraulicStatus = statusMap[displayStatus] || 'ACQUISITION';
-            const color = hydraulicStatus === 'POSITION_CLOSED' ? '#ffd700' : 
-                         (hydraulicStatus === 'ESCROW_VELOCITY' ? '#ffbf00' : 
-                         (hydraulicStatus === 'BUYER_MATCHED' ? '#00d2ff' : '#bc13fe'));
-
-            return `
-            <div class="card" style="border-left: 6px solid ${color}">
+        // UI Render: High-Density Card Injection
+        const cards = (assets || []).map(a => `
+            <div class="card" onclick="openModal('${a.address || 'Unknown'}', '${a.status || 'N/A'}', '${a.gross_arbitrage_spread || 0}', '${a.id || 'N/A'}', '${a.title_company || 'Pending'}', '${a.target_closing_date || 'N/A'}', '${a.arb_spread_pct || '0'}')">
                 <div class="header">
                     <span class="name">${a.address || 'Unknown Asset'}</span>
-                    <span class="badge" style="background: ${color}22; color: ${color}">${hydraulicStatus}</span>
+                    <span class="state">${(a.status || 'PENDING').toUpperCase()}</span>
                 </div>
-                <div class="val">+$${(a.gross_arbitrage_spread || 0).toLocaleString()}</div>
-                <div class="footer">
-                    <div class="sig">
-                        <span class="orb ${a.contract_status === 'Signed' ? 'active' : ''}">B</span>
-                        <span class="orb ${a.contract_status === 'Signed' ? 'active' : ''}">S</span>
-                        <span class="orb ${a.contract_status === 'Signed' ? 'active' : ''}">A</span>
-                    </div>
-                    <div class="grade">${a.deal_grade || 'A'}</div>
-                </div>
-                <div class="velocity-container">
-                    <div class="ghost-bar" style="width: 70%"></div>
-                    <div class="liquid-fill" style="width: ${hydraulicStatus === 'POSITION_CLOSED' ? '100' : (hydraulicStatus === 'ESCROW_VELOCITY' ? '75' : '25')}%; color: ${color}"></div>
-                </div>
-            </div>`;
-        }).join('');
-        
-        res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>JUGGERNAUT | LIVE 51-ASSET COMMAND CENTER</title>
-            <style>
-                body { 
-                    background: #000; color: #fff; font-family: 'Courier New', monospace; 
-                    margin: 0; padding: 15px; width: 100vw; box-sizing: border-box; overflow-x: hidden;
-                    background-image: radial-gradient(circle at 50% 50%, rgba(188, 19, 254, 0.05) 0%, transparent 70%);
-                }
-                .totalizer-wrap { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #222; padding-bottom: 20px; position: sticky; top: 0; background: #000; z-index: 100; }
-                .totalizer { font-size: 2rem; font-weight: 900; color: #ffd700; text-shadow: 0 0 15px rgba(255,215,0,0.5); }
-                .card { 
-                    background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 15px; margin-bottom: 15px; 
-                    border-radius: 12px; width: 100%; box-sizing: border-box; position: relative; overflow: hidden;
-                }
-                .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-                .name { font-size: 0.9rem; font-weight: 900; color: #00ffff; word-break: break-all; }
-                .badge { font-size: 0.5rem; padding: 2px 6px; border-radius: 4px; font-weight: 900; white-space: nowrap; border: 1px solid currentColor; }
-                .val { font-size: 1.8rem; margin: 10px 0; color: #0f0; font-weight: 900; }
-                .footer { display: flex; justify-content: space-between; align-items: center; }
-                .sig { display: flex; gap: 6px; }
-                .orb { 
-                    width: 22px; height: 22px; border-radius: 50%; border: 1px solid #444; 
-                    display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 900; opacity: 0.2;
-                }
-                .orb.active { opacity: 1; border-color: #0f0; color: #0f0; box-shadow: 0 0 10px #0f0; }
-                .grade { font-size: 0.6rem; color: #555; font-weight: 900; }
-                .velocity-container { height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-top: 10px; position: relative; overflow: hidden; }
-                .ghost-bar { position: absolute; height: 100%; border-right: 2px dashed rgba(255,255,255,0.2); z-index: 1; }
-                .liquid-fill { height: 100%; background: currentColor; box-shadow: 0 0 10px currentColor; position: relative; z-index: 2; }
-            </style>
-        </head>
-        <body>
-            <div class="totalizer-wrap">
-                <div style="font-size: 0.5rem; color: #555; letter-spacing: 3px; margin-bottom: 5px;">LIVE PIPELINE LIQUIDITY (${assets.length} ASSETS)</div>
-                <div class="totalizer">$${totalEquity.toLocaleString()}</div>
+                <div class="val">+$${(Number(a.gross_arbitrage_spread) || 0).toLocaleString()}</div>
+                <div class="footer"><div class="id">#${a.id ? a.id.substring(0,8) : '000'}</div></div>
             </div>
-            ${cards}
-        </body>
-        </html>`);
+        `).join('');
+
+        res.send(`<!DOCTYPE html><html><head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; padding: 10px; width: 100vw; box-sizing: border-box; overflow-x: hidden; }
+                .total { color: #ffd700; font-size: 1.5rem; text-align: center; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+                .card { background: #111; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #222; cursor: pointer; width: 100%; box-sizing: border-box; }
+                .header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; align-items: flex-start; gap: 10px; }
+                .name { color: #00ffff; font-weight: bold; word-break: break-all; }
+                .state { font-size: 0.6rem; background: #222; padding: 2px 6px; border-radius: 4px; color: #fff; white-space: nowrap; }
+                .val { font-size: 1.8rem; color: #0f0; margin-bottom: 10px; font-weight: bold; }
+                .footer { font-size: 0.7rem; color: #666; }
+                .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; padding: 20px; box-sizing: border-box; z-index: 1000; overflow-y: auto; }
+                .stat-box { border: 1px solid #0f0; padding: 15px; margin-top: 20px; border-radius: 8px; }
+                .close-btn { width: 100%; padding: 15px; background: #0f0; color: #000; border: none; border-radius: 5px; font-weight: bold; margin-top: 20px; }
+            </style></head><body>
+                <div class="total">VOLUME: $${totalLiquidity}</div>
+                ${cards}
+                <div id="modal" class="modal">
+                    <h2 id="mName" style="color:#0f0; border-bottom: 1px solid #333; padding-bottom: 10px; word-break: break-all;"></h2>
+                    <div class="stat-box">
+                        <div style="font-size: 0.8rem; color: #aaa;">LIQUIDITY</div>
+                        <div id="mVal" style="font-size: 2rem; color: #ffd700; margin-bottom: 15px;"></div>
+                        <p>Status: <span id="mStatus" style="color: #fff;"></span></p>
+                        <p>ID: <span id="mId" style="color: #fff;"></span></p>
+                        <p>Closing Date: <span id="mDays" style="color: #fff;"></span></p>
+                        <p>Profit Spread: <span id="mSpread" style="color: #fff;"></span></p>
+                    </div>
+                    <button class="close-btn" onclick="closeModal()">CLOSE CONNECTION</button>
+                </div>
+                <script>
+                    function openModal(name, state, val, id, title, days, spread) {
+                        document.getElementById('mName').innerText = name;
+                        document.getElementById('mVal').innerText = '+$' + parseInt(val).toLocaleString();
+                        document.getElementById('mStatus').innerText = state.toUpperCase();
+                        document.getElementById('mId').innerText = id;
+                        document.getElementById('mDays').innerText = days;
+                        document.getElementById('mSpread').innerText = spread + '%';
+                        document.getElementById('modal').style.display = 'block';
+                    }
+                    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+                </script>
+            </body></html>`);
     } catch (err) {
-        res.status(500).send(`CRITICAL_FLOW_ERROR: ${err.message}`);
+        res.status(500).send("Juggernaut Error: " + err.message);
     }
 });
 
-app.listen(PORT, () => console.log('Juggernaut Online'));
+app.listen(PORT, () => console.log('Juggernaut Stabilized.'));
