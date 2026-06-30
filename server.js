@@ -1,45 +1,36 @@
 const express = require('express');
 const path = require('path');
+const http = require('http');
+const WebSocket = require('ws');
 
 const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
 const PORT = process.env.PORT || 3000;
 
-// 1. ATOMIC REDIRECT OVERRIDE & ABSOLUTE PATH ROUTING
-// Enforces hard-domain lock for the AbandonedAssetsOS ecosystem.
+// 1. HARD-CODED DIRECTORY MAPPING (ZERO AMBIGUITY)
+// Forces the system to serve from /public exclusively
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
 
-// JUGGERNAUT-STANDARD: STATIC ROUTING MANIFEST (NASA-LEVEL ACCURACY)
-// Enforces hard-domain lock and bypasses defunct routing fragments.
-
-const serveSettlement = (req, res) => {
-  const filePath = path.join(__dirname, 'settlement.html');
-  console.log(`[ROUTING_LOG] Serving: ${filePath}`);
-  res.set({
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
-    'Surrogate-Control': 'no-store'
-  });
-  res.sendFile(filePath);
+// 2. JUGGERNAUT-STANDARD ROUTING
+const serveTerminal = (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
 };
 
-// Mapping the 'Absolute Path' for the Daughter Settlement Gateway
-app.get('/terminal/daughter-settlement-gateway', serveSettlement);
+app.get('/', serveTerminal);
+app.get('/settlement', serveTerminal);
+app.get('/terminal', serveTerminal);
+app.get('/index.html', serveTerminal);
 
-// Force-mapping all root requests to the Terminal Instance
-app.get('/', serveSettlement);
-
-// Explicit mapping for abandonedasset.online routing fragments
-app.get('/index.html', serveSettlement);
-
-// Fallback for all other defunct routing paths
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// 3. WEBSOCKET FLOW CONTROL
+wss.on('connection', (ws) => {
+    console.log('[JUGGERNAUT] Node connected to Hydraulic Pipe');
+    ws.send(JSON.stringify({ type: 'CONNECTION_ESTABLISHED', timestamp: Date.now() }));
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`[JUGGERNAUT_MANIFEST] Server running on port ${PORT}`);
-  console.log(`[SOVEREIGN_REDIRECT] All incoming requests mapped to terminal instance.`);
+// 4. START THE ENGINE
+server.listen(PORT, () => {
+    console.log(`[JUGGERNAUT_RESTART] System live on port ${PORT}`);
+    console.log(`[FLOW_LOCKED] All routes mapped to /public/settlement.html`);
 });
