@@ -3,10 +3,39 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { background: #000; color: #fff; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
-        .asset-card { border: 1px solid #333; padding: 10px; margin-bottom: 10px; border-radius: 8px; background: #0a0a0a; width: 100%; box-sizing: border-box; overflow: hidden; word-break: break-all; }
-        .equity { font-size: 1.2rem; color: #0f0; margin-top: 5px; }
-        .state-badge { padding: 2px 6px; font-size: 0.7rem; font-weight: bold; border-radius: 4px; float: right; background: #222; }
+        body { 
+            background: #000; 
+            color: #fff; 
+            font-family: 'Courier New', monospace; 
+            margin: 0; 
+            padding: 10px; 
+            width: 100vw; 
+            overflow-x: hidden; 
+        }
+        .asset-card { 
+            border: 1px solid #333; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            border-radius: 8px; 
+            background: #0a0a0a; 
+            width: 95% !important; 
+            box-sizing: border-box; 
+            word-wrap: break-word !important;
+            overflow: hidden !important;
+        }
+        .equity { 
+            font-size: 1.2rem; 
+            color: #0f0; 
+            margin-top: 5px; 
+            word-break: break-all !important;
+        }
+        .state-badge { 
+            padding: 2px 6px; 
+            font-size: 0.7rem; 
+            font-weight: bold; 
+            border-radius: 4px; 
+            float: right; 
+        }
         .sig-container { display: flex; gap: 5px; margin-top: 5px; }
         .sig-badge { padding: 2px 5px; border: 1px solid #555; border-radius: 50%; opacity: 0.3; }
         .sig-badge.active { opacity: 1; border-color: #0f0; color: #0f0; }
