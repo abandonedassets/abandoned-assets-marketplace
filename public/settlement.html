@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JUGGERNAUT | ULTRA-FLOW HOLOGRAPHIC TERMINAL</title>
+    <title>JUGGERNAUT | HIGH-DOPAMINE COMMAND CENTER</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-violet: #bc13fe;
@@ -15,7 +15,6 @@
             --neon-green: #00ff41;
             --neon-gold: #ffd700;
             --neon-red: #ff3131;
-            --glass-bg: rgba(10, 10, 10, 0.85);
         }
         
         body {
@@ -23,112 +22,92 @@
             color: #fff;
             font-family: 'Orbitron', sans-serif;
             overflow-x: hidden;
-            background-image: 
-                radial-gradient(circle at 50% 50%, rgba(188, 19, 254, 0.05) 0%, transparent 70%),
-                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            background-size: 100% 100%, 30px 30px, 30px 30px;
+            background-image: radial-gradient(circle at 50% 50%, rgba(188, 19, 254, 0.05) 0%, transparent 70%);
         }
 
         .mono { font-family: 'JetBrains Mono', monospace; }
         
-        .hologram-card {
-            background: var(--glass-bg);
+        /* 1. ENTRANCE ANIMATIONS (WATERFALL) */
+        @keyframes waterfallDrop {
+            0% { transform: translateY(-50px) scale(0.9); opacity: 0; }
+            60% { transform: translateY(10px) scale(1.02); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .asset-card {
+            animation: waterfallDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* MORPH ANIMATION */
+            background: rgba(15, 15, 15, 0.8);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        
-        .hologram-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-            transform: rotate(45deg);
-            animation: shine 6s infinite;
+            backdrop-filter: blur(10px);
         }
 
-        @keyframes shine {
-            0% { transform: translateX(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) rotate(45deg); }
+        /* 2. SIGNATURE GLOW BURST */
+        @keyframes glowBurst {
+            0% { box-shadow: 0 0 0px currentColor; filter: brightness(1); }
+            50% { box-shadow: 0 0 30px currentColor; filter: brightness(2); }
+            100% { box-shadow: 0 0 10px currentColor; filter: brightness(1.2); }
         }
-
-        .hologram-card:hover {
-            transform: translateY(-5px) scale(1.02);
-            border-color: var(--neon-cyan);
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
-        }
-
-        .glow-text {
-            text-shadow: 0 0 10px currentColor;
-        }
-
-        .liquid-progress {
-            height: 6px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 3px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .liquid-fill {
-            height: 100%;
-            position: absolute;
-            left: 0;
-            top: 0;
-            background: linear-gradient(90deg, transparent, currentColor, transparent);
-            background-size: 200% 100%;
-            animation: liquid-flow 2s linear infinite;
-        }
-
-        @keyframes liquid-flow {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
         .sig-orb {
-            width: 12px;
-            height: 12px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            background: #222;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 900;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
             transition: all 0.3s ease;
         }
-
         .sig-orb.active {
+            animation: glowBurst 0.8s ease-out forwards;
+            border-color: transparent;
+        }
+
+        /* 3. VELOCITY STREAK BADGE */
+        .streak-badge {
+            background: linear-gradient(45deg, #ff00cc, #3333ff);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(255, 0, 204, 0.5);
+        }
+
+        /* 4. LIQUID PROGRESS & GHOST BARS */
+        .progress-container {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        .ghost-bar {
+            position: absolute;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-right: 2px dashed rgba(255, 255, 255, 0.3);
+            z-index: 1;
+        }
+        .liquid-fill {
+            height: 100%;
             background: currentColor;
             box-shadow: 0 0 15px currentColor;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 2;
         }
 
-        .ticker-wrap {
-            background: rgba(0,0,0,0.5);
-            border-bottom: 1px solid var(--neon-cyan);
-            padding: 10px 0;
-        }
-
-        .ticker-content {
-            display: flex;
-            white-space: nowrap;
-            animation: ticker 30s linear infinite;
-        }
-
-        @keyframes ticker {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .jackpot-glow {
-            animation: jackpot 1s ease-in-out infinite alternate;
-        }
-
-        @keyframes jackpot {
-            0% { box-shadow: 0 0 5px var(--neon-gold); }
-            100% { box-shadow: 0 0 30px var(--neon-gold); }
+        /* 5. TOP TOTALIZER */
+        .totalizer {
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(to bottom, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
         }
 
         .scanline {
@@ -137,252 +116,122 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 2;
-            background-size: 100% 2px, 3px 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            z-index: 100;
+            background-size: 100% 4px;
             pointer-events: none;
-        }
-
-        .btn-sovereign {
-            background: linear-gradient(135deg, var(--neon-violet), var(--neon-blue));
-            border: none;
-            color: white;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .btn-sovereign:hover {
-            letter-spacing: 4px;
-            box-shadow: 0 0 20px var(--neon-blue);
+            opacity: 0.3;
         }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="scanline"></div>
 
-    <div id="auth-gate" class="passcode-overlay fixed inset-0 bg-black/95 flex items-center justify-center z-[1000]">
-        <div class="hologram-card p-12 rounded-3xl text-center max-w-md w-full border-neon-violet/50">
-            <h2 class="text-3xl font-black mb-8 glow-text text-neon-violet tracking-[0.3em]">SOVEREIGN ACCESS</h2>
-            <div class="relative mb-8">
-                <input type="password" id="passcode-input" maxlength="6" class="bg-transparent border-b-2 border-neon-violet text-white text-center text-4xl p-4 w-full focus:outline-none focus:border-neon-cyan transition-all mono tracking-widest" placeholder="******">
-            </div>
-            <button onclick="checkPasscode()" class="btn-sovereign w-full py-5 rounded-xl text-lg">INITIALIZE NEURAL LINK</button>
-            <div id="auth-error" class="text-neon-red mt-6 text-xs hidden animate-pulse uppercase">Access Denied. Tracing Connection...</div>
+    <div id="auth-gate" class="fixed inset-0 bg-black z-[1000] flex items-center justify-center">
+        <div class="text-center">
+            <h2 class="text-4xl font-black mb-8 tracking-[0.5em] text-neon-violet">JUGGERNAUT</h2>
+            <input type="password" id="passcode-input" class="bg-transparent border-b-4 border-neon-violet text-center text-5xl p-4 w-64 focus:outline-none mono" placeholder="******">
+            <button onclick="checkPasscode()" class="block mt-12 mx-auto px-12 py-4 bg-neon-violet font-black rounded-full hover:scale-110 transition-transform">LINK NEURAL</button>
         </div>
     </div>
 
-    <div id="terminal-content" class="hidden relative z-10">
-        <!-- TOP TICKER -->
-        <div class="ticker-wrap mb-8 rounded-xl overflow-hidden">
-            <div class="ticker-content mono text-xs uppercase text-neon-cyan gap-12">
-                <span>[EQUITY_FLOW] +$1.2M IN LAST 24H</span>
-                <span>[NODE_SYNC] SOVEREIGN_MAIN ACTIVE</span>
-                <span>[MARKET_VELOCITY] 98.4% OPTIMIZED</span>
-                <span>[ALGO_STATUS] HYDRAULIC_PROTOCOL_LOCKED</span>
-                <span>[LIQUIDITY] $12,542,000 TOTAL VOLUME</span>
-            </div>
+    <div id="terminal-content" class="hidden">
+        <!-- TOTALIZER -->
+        <div class="text-center mb-12">
+            <div class="text-[10px] text-gray-500 uppercase tracking-[1em] mb-2">Total Pipeline Equity</div>
+            <div class="totalizer mono" id="equity-counter">$12,542,000</div>
         </div>
 
-        <!-- HEADER -->
-        <div class="flex flex-col lg:flex-row justify-between items-end mb-12 gap-8">
-            <div class="relative">
-                <div class="absolute -left-4 top-0 w-1 h-full bg-neon-violet shadow-[0_0_15px_var(--neon-violet)]"></div>
-                <h1 class="text-6xl font-black tracking-tighter uppercase leading-none italic">
-                    <span class="text-neon-violet">JUGGER</span>NAUT
-                </h1>
-                <p class="text-neon-cyan text-sm mono mt-2 tracking-[0.4em] uppercase">Ultra-Flow Holographic Terminal v9.9.9</p>
-            </div>
-            
-            <div class="flex gap-12 items-center">
-                <div class="text-right">
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Live Pipeline Equity</div>
-                    <div class="text-4xl font-black glow-text text-neon-gold mono">$<span id="liquidity-ticker">12,542,000</span></div>
-                </div>
-                <div class="h-16 w-[2px] bg-white/10"></div>
-                <div class="text-right">
-                    <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Global Exit Velocity</div>
-                    <div class="text-4xl font-black glow-text text-neon-green mono">9.9/10</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- GRID SYSTEM -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            <!-- LEFT: ASSET CARDS (8 COLS) -->
-            <div class="lg:col-span-8 space-y-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold uppercase tracking-[0.2em] text-white/80">Active Flow States</h3>
-                    <div class="flex gap-4 text-[10px] mono text-gray-500">
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-neon-violet"></div> ACQ</span>
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-neon-blue"></div> MATCH</span>
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-neon-cyan"></div> EXEC</span>
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-neon-amber"></div> VELO</span>
-                        <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-neon-green"></div> READY</span>
-                    </div>
-                </div>
-
-                <!-- CARD 1: GOLD EXIT -->
-                <div class="hologram-card p-8 rounded-3xl border-l-8 border-neon-gold jackpot-glow">
+            <!-- MAIN FEED -->
+            <div class="lg:col-span-8 space-y-6" id="asset-feed">
+                <!-- ASSET 1 -->
+                <div class="asset-card p-8 rounded-3xl border-l-8" style="border-color: var(--neon-gold); color: var(--neon-gold);">
                     <div class="flex justify-between items-start mb-6">
                         <div>
-                            <div class="flex items-center gap-3 mb-1">
-                                <h4 class="text-2xl font-black tracking-tight text-neon-gold uppercase">Aurora Commercial Pad</h4>
-                                <span class="text-[10px] bg-neon-gold/20 text-neon-gold px-2 py-1 rounded border border-neon-gold/50 font-bold">GOLD_EXIT</span>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h4 class="text-2xl font-black text-white">Aurora Commercial Pad</h4>
+                                <span class="streak-badge">12 Streak 🔥</span>
                             </div>
-                            <p class="text-gray-400 text-xs mono uppercase tracking-widest">Asset ID: ASSET-77291 | Institutional Grade</p>
+                            <p class="text-gray-500 text-xs mono uppercase">ASSET-77291 | Institutional</p>
                         </div>
                         <div class="text-right">
-                            <div class="text-3xl font-black text-white mono">+$125,000</div>
-                            <div class="text-[10px] text-neon-green mono mt-1">PROFIT_MANIFESTED</div>
+                            <span class="text-xs font-bold uppercase tracking-widest px-3 py-1 bg-gold-500/10 rounded-full" style="color: var(--neon-gold); border: 1px solid var(--neon-gold);">Position_Closed</span>
+                            <div class="text-3xl font-black text-white mt-2">+$125,000</div>
                         </div>
                     </div>
                     <div class="flex justify-between items-center">
                         <div class="flex gap-4">
-                            <div class="flex items-center gap-2">
-                                <div class="sig-orb active text-neon-gold"></div>
-                                <span class="text-[10px] mono text-gray-400">BUYER</span>
+                            <div class="sig-orb active" style="color: var(--neon-gold);" onclick="toggleSig(this)">B</div>
+                            <div class="sig-orb active" style="color: var(--neon-gold);" onclick="toggleSig(this)">S</div>
+                            <div class="sig-orb active" style="color: var(--neon-gold);" onclick="toggleSig(this)">A</div>
+                        </div>
+                        <div class="w-48 space-y-1">
+                            <div class="flex justify-between text-[8px] mono uppercase text-gray-500">
+                                <span>Velocity</span>
+                                <span>Optimal</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <div class="sig-orb active text-neon-gold"></div>
-                                <span class="text-[10px] mono text-gray-400">SELLER</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="sig-orb active text-neon-gold"></div>
-                                <span class="text-[10px] mono text-gray-400">AGENT</span>
+                            <div class="progress-container">
+                                <div class="ghost-bar" style="width: 70%"></div>
+                                <div class="liquid-fill" style="width: 100%; color: var(--neon-gold);"></div>
                             </div>
                         </div>
-                        <button class="px-6 py-2 rounded-full border border-neon-gold text-neon-gold text-[10px] font-black uppercase tracking-widest hover:bg-neon-gold hover:text-black transition-all">Download Settlement Ledger</button>
                     </div>
                 </div>
 
-                <!-- CARD 2: PULSING AMBER -->
-                <div class="hologram-card p-8 rounded-3xl border-l-8 border-neon-amber">
+                <!-- ASSET 2 -->
+                <div class="asset-card p-8 rounded-3xl border-l-8" style="border-color: var(--neon-amber); color: var(--neon-amber);">
                     <div class="flex justify-between items-start mb-6">
                         <div>
-                            <div class="flex items-center gap-3 mb-1">
-                                <h4 class="text-2xl font-black tracking-tight text-white uppercase">Courtyard Cir. (Aurora)</h4>
-                                <span class="text-[10px] bg-neon-amber/20 text-neon-amber px-2 py-1 rounded border border-neon-amber/50 font-bold animate-pulse">ESCROW_VELOCITY</span>
+                            <div class="flex items-center gap-3 mb-2">
+                                <h4 class="text-2xl font-black text-white">Courtyard Cir.</h4>
+                                <span class="streak-badge" style="background: #555; box-shadow: none;">New Position</span>
                             </div>
-                            <p class="text-gray-400 text-xs mono uppercase tracking-widest">Asset ID: ASSET-99120 | Residential Cluster</p>
+                            <p class="text-gray-500 text-xs mono uppercase">ASSET-99120 | Residential</p>
                         </div>
                         <div class="text-right">
-                            <div class="text-xs text-neon-amber mono mb-1">VELOCITY_GAP: -1.2H</div>
-                            <div class="liquid-progress w-32 text-neon-amber">
-                                <div class="liquid-fill" style="width: 45%"></div>
-                            </div>
+                            <span class="text-xs font-bold uppercase tracking-widest px-3 py-1 bg-amber-500/10 rounded-full" style="color: var(--neon-amber); border: 1px solid var(--neon-amber);">Escrow_Velocity</span>
+                            <div class="text-3xl font-black text-white mt-2">+$45,000</div>
                         </div>
                     </div>
                     <div class="flex justify-between items-center">
                         <div class="flex gap-4">
-                            <div class="flex items-center gap-2">
-                                <div class="sig-orb active text-neon-amber"></div>
-                                <span class="text-[10px] mono text-gray-400">BUYER</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="sig-orb text-gray-800"></div>
-                                <span class="text-[10px] mono text-gray-400">SELLER</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="sig-orb active text-neon-amber"></div>
-                                <span class="text-[10px] mono text-gray-400">AGENT</span>
-                            </div>
+                            <div class="sig-orb active" style="color: var(--neon-amber);" onclick="toggleSig(this)">B</div>
+                            <div class="sig-orb" style="color: var(--neon-amber);" onclick="toggleSig(this)">S</div>
+                            <div class="sig-orb active" style="color: var(--neon-amber);" onclick="toggleSig(this)">A</div>
                         </div>
-                        <div class="flex gap-2">
-                            <button class="px-4 py-2 rounded-lg bg-neon-amber/10 border border-neon-amber/30 text-neon-amber text-[10px] font-bold uppercase">Force Node</button>
-                            <button class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-[10px] font-bold uppercase">View Handshake</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- CARD 3: NEON VIOLET -->
-                <div class="hologram-card p-8 rounded-3xl border-l-8 border-neon-violet">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <div class="flex items-center gap-3 mb-1">
-                                <h4 class="text-2xl font-black tracking-tight text-white uppercase">Institutional Portfolio X</h4>
-                                <span class="text-[10px] bg-neon-violet/20 text-neon-violet px-2 py-1 rounded border border-neon-violet/50 font-bold">ACQUISITION_PHASE</span>
+                        <div class="w-48 space-y-1">
+                            <div class="flex justify-between text-[8px] mono uppercase text-gray-500">
+                                <span>Velocity</span>
+                                <span class="text-neon-red">Stalled</span>
                             </div>
-                            <p class="text-gray-400 text-xs mono uppercase tracking-widest">Asset ID: ASSET-44102 | Multi-Family Hub</p>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs text-neon-violet mono mb-1">MATCHING_ALGO: ACTIVE</div>
-                            <div class="liquid-progress w-32 text-neon-violet">
-                                <div class="liquid-fill" style="width: 15%"></div>
+                            <div class="progress-container">
+                                <div class="ghost-bar" style="width: 80%"></div>
+                                <div class="liquid-fill" style="width: 45%; color: var(--neon-amber);"></div>
                             </div>
                         </div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="flex gap-4 text-gray-600 text-[10px] mono">
-                            NO SIGNATURES DETECTED - AWAITING BUYER_MATCH
-                        </div>
-                        <button class="btn-sovereign px-6 py-2 rounded-lg text-[10px]">Boost Visibility</button>
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT: ANALYTICS (4 COLS) -->
+            <!-- SIDEBAR -->
             <div class="lg:col-span-4 space-y-8">
-                <div class="hologram-card p-8 rounded-3xl border-t-4 border-neon-cyan">
-                    <h3 class="text-sm font-black text-neon-cyan uppercase tracking-widest mb-8">System Distribution</h3>
-                    <div class="space-y-6">
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] mono uppercase">
-                                <span class="text-neon-violet">Acquisition</span>
-                                <span>40%</span>
+                <div class="asset-card p-8 rounded-3xl border-t-4 border-neon-cyan">
+                    <h3 class="text-sm font-black text-neon-cyan uppercase tracking-widest mb-6">Sovereign Leaderboard</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div class="flex items-center gap-3">
+                                <span class="text-neon-gold font-black">#1</span>
+                                <span class="text-xs font-bold">Evin Betts</span>
                             </div>
-                            <div class="liquid-progress text-neon-violet"><div class="liquid-fill" style="width: 40%"></div></div>
+                            <span class="text-xs mono text-neon-green">9.8 Velo</span>
                         </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] mono uppercase">
-                                <span class="text-neon-blue">Buyer_Matched</span>
-                                <span>30%</span>
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div class="flex items-center gap-3">
+                                <span class="text-gray-500 font-black">#2</span>
+                                <span class="text-xs font-bold">Title Node A</span>
                             </div>
-                            <div class="liquid-progress text-neon-blue"><div class="liquid-fill" style="width: 30%"></div></div>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] mono uppercase">
-                                <span class="text-neon-amber">Escrow_Velocity</span>
-                                <span>15%</span>
-                            </div>
-                            <div class="liquid-progress text-neon-amber"><div class="liquid-fill" style="width: 15%"></div></div>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-[10px] mono uppercase">
-                                <span class="text-neon-gold">Position_Closed</span>
-                                <span>100% (Efficiency)</span>
-                            </div>
-                            <div class="liquid-progress text-neon-gold"><div class="liquid-fill" style="width: 100%"></div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="hologram-card p-8 rounded-3xl border-t-4 border-neon-violet">
-                    <h3 class="text-sm font-black text-neon-violet uppercase tracking-widest mb-6">Audit Stream</h3>
-                    <div class="space-y-4 text-[9px] mono uppercase leading-tight">
-                        <div class="flex gap-2 text-neon-green">
-                            <span>[OK]</span>
-                            <span>ASSET-77291: EXIT_STRATEGY_EXECUTED</span>
-                        </div>
-                        <div class="flex gap-2 text-neon-amber">
-                            <span>[WRN]</span>
-                            <span>ASSET-99120: SELLER_SIG_PENDING</span>
-                        </div>
-                        <div class="flex gap-2 text-neon-cyan">
-                            <span>[INF]</span>
-                            <span>ALGO: SCANNING_FOR_PORTFOLIO_X_MATCH</span>
-                        </div>
-                        <div class="flex gap-2 text-neon-violet">
-                            <span>[SYS]</span>
-                            <span>CORE: JUGGERNAUT_STABILITY_OPTIMAL</span>
-                        </div>
-                        <div class="flex gap-2 text-neon-gold">
-                            <span>[$$$]</span>
-                            <span>LIQUIDITY: +$12,542,000 VERIFIED</span>
+                            <span class="text-xs mono text-neon-blue">8.4 Velo</span>
                         </div>
                     </div>
                 </div>
@@ -391,34 +240,38 @@
     </div>
 
     <script>
+        const clickSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
+        const winSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
+
         function checkPasscode() {
-            const input = document.getElementById('passcode-input').value;
-            const error = document.getElementById('auth-error');
-            
-            if (input === 'Gammer') {
-                document.getElementById('auth-gate').style.opacity = '0';
-                setTimeout(() => {
-                    document.getElementById('auth-gate').style.display = 'none';
-                    document.getElementById('terminal-content').classList.remove('hidden');
-                    animateTicker();
-                }, 500);
-            } else {
-                error.classList.remove('hidden');
-                document.getElementById('passcode-input').value = '';
-                setTimeout(() => error.classList.add('hidden'), 3000);
+            if (document.getElementById('passcode-input').value === 'Gammer') {
+                document.getElementById('auth-gate').style.display = 'none';
+                document.getElementById('terminal-content').classList.remove('hidden');
+                animateEquity();
             }
         }
 
-        function animateTicker() {
-            const ticker = document.getElementById('liquidity-ticker');
+        function toggleSig(el) {
+            el.classList.toggle('active');
+            clickSound.play();
+            if (window.navigator.vibrate) window.navigator.vibrate(20);
+            
+            if (el.parentElement.querySelectorAll('.active').length === 3) {
+                winSound.play();
+                alert('SOVEREIGN_LOCK: All signatures verified. Transitioning state...');
+            }
+        }
+
+        function animateEquity() {
             let val = 12542000;
+            const el = document.getElementById('equity-counter');
             setInterval(() => {
-                val += Math.floor(Math.random() * 500);
-                ticker.innerText = val.toLocaleString();
+                val += Math.floor(Math.random() * 1000);
+                el.innerText = '$' + val.toLocaleString();
             }, 2000);
         }
 
-        document.getElementById('passcode-input').addEventListener('keypress', function (e) {
+        document.getElementById('passcode-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') checkPasscode();
         });
     </script>
