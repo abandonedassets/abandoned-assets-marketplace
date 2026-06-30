@@ -13,7 +13,7 @@ app.use(express.static(__dirname));
 // Enforces hard-domain lock and bypasses defunct routing fragments.
 
 const serveSettlement = (req, res) => {
-  const filePath = path.join(__dirname, 'public', 'settlement.html');
+  const filePath = path.join(__dirname, 'settlement.html');
   console.log(`[ROUTING_LOG] Serving: ${filePath}`);
   res.set({
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
