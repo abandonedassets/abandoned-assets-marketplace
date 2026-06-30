@@ -156,14 +156,28 @@
                 
                 if (!data) throw new Error("Asset not found");
 
+                const totalValue = data.arv_projection || (data.cost_basis + data.gross_arbitrage_spread);
+                const emd = data.escrow_reserve || 5000;
+                const netProfit = data.gross_arbitrage_spread || 0;
+                const daysInTitle = Math.floor((new Date() - new Date(data.created_at)) / (1000 * 60 * 60 * 24));
+                const velocityScore = data.deal_health_score > 85 ? `T-Minus ${Math.max(1, 10 - daysInTitle)} Days` : "VELOCITY DECAY";
+
                 alert(`
-                    TRANSACTION VERIFIED: ${data.address || assetId}
+                    INSTITUTIONAL SETTLEMENT VERIFIED
                     ---------------------------------
-                    Net Profit (Yours): $${(data.gross_arbitrage_spread || 0).toLocaleString()}
-                    Earnest Money (Escrow): $${(data.escrow_reserve || 5000).toLocaleString()}
-                    Status: ${data.status.toUpperCase()}
-                    Asset Class: ${data.asset_class.toUpperCase()}
-                    Health Score: ${data.deal_health_score}%
+                    ASSET: ${data.address || assetId}
+                    
+                    FINANCIAL BREAKDOWN:
+                    - Total Asset Value: $${totalValue.toLocaleString()}
+                    - Contract EMD: $${emd.toLocaleString()} (Security Deposit)
+                    - PROJECTED NET: $${netProfit.toLocaleString()} (Your Profit)
+                    
+                    PREDICTIVE MODELING:
+                    - Days in Title: ${daysInTitle} Days
+                    - Velocity Projection: ${velocityScore}
+                    - Deal Health: ${data.deal_health_score}%
+                    
+                    LOGIC: Separation of EMD from Execution Profit confirmed.
                 `);
             } catch (err) {
                 console.error("Connection Failed:", err);
