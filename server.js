@@ -20,6 +20,7 @@ const serveTerminal = (req, res) => {
 
 app.get('/', serveTerminal);
 app.get('/settlement', serveTerminal);
+app.get('/settlement.html', serveTerminal);
 app.get('/terminal', serveTerminal);
 app.get('/index.html', serveTerminal);
 
