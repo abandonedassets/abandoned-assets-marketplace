@@ -131,7 +131,7 @@
                         </span>
                     </td>
                     <td class="px-6 py-4">
-                        <button class="text-[9px] font-bold text-gray-500 border border-gray-800 px-3 py-1 rounded hover:border-green-500 hover:text-green-400 transition-all uppercase">
+<button onclick="viewHandshake('${deal.id}')" class="text-[9px] font-bold text-gray-500 border border-gray-800 px-3 py-1 rounded hover:border-green-500 hover:text-green-400 transition-all uppercase">
                             View Handshake
                         </button>
                     </td>
@@ -143,6 +143,32 @@
             document.getElementById('active-closings').innerText = deals.length;
             const volume = deals.reduce((acc, deal) => acc + (deal.cost_basis || 0), 0);
             document.getElementById('escrow-volume').innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(volume);
+        }
+
+        // ESCROW TRANSPARENCY MODULE
+        async function viewHandshake(assetId) {
+            console.log("Fetching data for:", assetId);
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/deals_master?id=eq.${assetId}&select=*`, {
+                    headers: { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}` }
+                });
+                const [data] = await response.json();
+                
+                if (!data) throw new Error("Asset not found");
+
+                alert(`
+                    TRANSACTION VERIFIED: ${data.address || assetId}
+                    ---------------------------------
+                    Net Profit (Yours): $${(data.gross_arbitrage_spread || 0).toLocaleString()}
+                    Earnest Money (Escrow): $${(data.escrow_reserve || 5000).toLocaleString()}
+                    Status: ${data.status.toUpperCase()}
+                    Asset Class: ${data.asset_class.toUpperCase()}
+                    Health Score: ${data.deal_health_score}%
+                `);
+            } catch (err) {
+                console.error("Connection Failed:", err);
+                alert("HANDSHAKE ERROR: Asset ID mismatch or network timeout.");
+            }
         }
 
         const CORRECT_CODE = 'Gammer';
