@@ -1,37 +1,27 @@
 const express = require('express');
 const path = require('path');
-const http = require('http');
-const WebSocket = require('ws');
-
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
 const PORT = process.env.PORT || 3000;
 
-// 1. HARD-CODED DIRECTORY MAPPING (ZERO AMBIGUITY)
-// Forces the system to serve from /public exclusively
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 2. JUGGERNAUT-STANDARD ROUTING
-const serveTerminal = (req, res) => {
+// API endpoint to serve all assets in the database
+app.get('/api/assets', (req, res) => {
+    // Replace this with your actual database call (e.g., Supabase)
+    const mockData = [
+        { id: "ASSET-77291", name: "Aurora Commercial Pad", state: "SETTLEMENT_READY", b: 1, s: 1, a: 1, val: 125000 },
+        { id: "ASSET-99120", name: "Courtyard Cir.", state: "ESCROW_VELOCITY", b: 1, s: 0, a: 1, val: 45000 },
+        { id: "ASSET-44102", name: "Institutional Portfolio X", state: "BUYER_MATCHED", b: 1, s: 1, a: 0, val: 85000 }
+    ];
+    res.json(mockData);
+});
+
+app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
-};
-
-app.get('/', serveTerminal);
-app.get('/settlement', serveTerminal);
-app.get('/settlement.html', serveTerminal);
-app.get('/terminal', serveTerminal);
-app.get('/index.html', serveTerminal);
-
-// 3. WEBSOCKET FLOW CONTROL
-wss.on('connection', (ws) => {
-    console.log('[JUGGERNAUT] Node connected to Hydraulic Pipe');
-    ws.send(JSON.stringify({ type: 'CONNECTION_ESTABLISHED', timestamp: Date.now() }));
 });
 
-// 4. START THE ENGINE
-server.listen(PORT, () => {
-    console.log(`[JUGGERNAUT_RESTART] System live on port ${PORT}`);
-    console.log(`[FLOW_LOCKED] All routes mapped to /public/settlement.html`);
+app.get('/settlement.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'settlement.html'));
 });
+
+app.listen(PORT, () => console.log('Juggernaut Online'));

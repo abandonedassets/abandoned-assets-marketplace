@@ -1,279 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JUGGERNAUT | HIGH-DOPAMINE COMMAND CENTER</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --neon-violet: #bc13fe;
-            --neon-blue: #00d2ff;
-            --neon-cyan: #00ffff;
-            --neon-amber: #ffbf00;
-            --neon-green: #00ff41;
-            --neon-gold: #ffd700;
-            --neon-red: #ff3131;
-        }
-        
-        body {
-            background: #020202;
-            color: #fff;
-            font-family: 'Orbitron', sans-serif;
-            overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% 50%, rgba(188, 19, 254, 0.05) 0%, transparent 70%);
-        }
-
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        
-        /* 1. ENTRANCE ANIMATIONS (WATERFALL) */
-        @keyframes waterfallDrop {
-            0% { transform: translateY(-50px) scale(0.9); opacity: 0; }
-            60% { transform: translateY(10px) scale(1.02); }
-            100% { transform: translateY(0) scale(1); opacity: 1; }
-        }
-        .asset-card {
-            animation: waterfallDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); /* MORPH ANIMATION */
-            background: rgba(15, 15, 15, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        /* 2. SIGNATURE GLOW BURST */
-        @keyframes glowBurst {
-            0% { box-shadow: 0 0 0px currentColor; filter: brightness(1); }
-            50% { box-shadow: 0 0 30px currentColor; filter: brightness(2); }
-            100% { box-shadow: 0 0 10px currentColor; filter: brightness(1.2); }
-        }
-        .sig-orb {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: 900;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .sig-orb.active {
-            animation: glowBurst 0.8s ease-out forwards;
-            border-color: transparent;
-        }
-
-        /* 3. VELOCITY STREAK BADGE */
-        .streak-badge {
-            background: linear-gradient(45deg, #ff00cc, #3333ff);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 9px;
-            font-weight: 900;
-            text-transform: uppercase;
-            box-shadow: 0 0 10px rgba(255, 0, 204, 0.5);
-        }
-
-        /* 4. LIQUID PROGRESS & GHOST BARS */
-        .progress-container {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-            position: relative;
-            overflow: hidden;
-        }
-        .ghost-bar {
-            position: absolute;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            border-right: 2px dashed rgba(255, 255, 255, 0.3);
-            z-index: 1;
-        }
-        .liquid-fill {
-            height: 100%;
-            background: currentColor;
-            box-shadow: 0 0 15px currentColor;
-            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            z-index: 2;
-        }
-
-        /* 5. TOP TOTALIZER */
-        .totalizer {
-            font-size: 4rem;
-            font-weight: 900;
-            background: linear-gradient(to bottom, #fff, #888);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
-        }
-
-        .scanline {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-            z-index: 100;
-            background-size: 100% 4px;
-            pointer-events: none;
-            opacity: 0.3;
-        }
+        body { background: #000; color: #fff; font-family: 'Courier New', monospace; margin: 0; padding: 10px; }
+        .asset-card { border: 1px solid #333; padding: 10px; margin-bottom: 10px; border-radius: 8px; background: #0a0a0a; width: 100%; box-sizing: border-box; overflow: hidden; word-break: break-all; }
+        .equity { font-size: 1.2rem; color: #0f0; margin-top: 5px; }
+        .state-badge { padding: 2px 6px; font-size: 0.7rem; font-weight: bold; border-radius: 4px; float: right; background: #222; }
+        .sig-container { display: flex; gap: 5px; margin-top: 5px; }
+        .sig-badge { padding: 2px 5px; border: 1px solid #555; border-radius: 50%; opacity: 0.3; }
+        .sig-badge.active { opacity: 1; border-color: #0f0; color: #0f0; }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="scanline"></div>
-
-    <div id="auth-gate" class="fixed inset-0 bg-black z-[1000] flex items-center justify-center">
-        <div class="text-center">
-            <h2 class="text-4xl font-black mb-8 tracking-[0.5em] text-neon-violet">JUGGERNAUT</h2>
-            <input type="password" id="passcode-input" class="bg-transparent border-b-4 border-neon-violet text-center text-5xl p-4 w-64 focus:outline-none mono" placeholder="******">
-            <button onclick="checkPasscode()" class="block mt-12 mx-auto px-12 py-4 bg-neon-violet font-black rounded-full hover:scale-110 transition-transform">LINK NEURAL</button>
-        </div>
-    </div>
-
-    <div id="terminal-content" class="hidden">
-        <!-- TOTALIZER -->
-        <div class="text-center mb-12">
-            <div class="text-[10px] text-gray-500 uppercase tracking-[1em] mb-2">Total Pipeline Equity</div>
-            <div class="totalizer mono" id="equity-counter">$12,542,000</div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- MAIN FEED -->
-            <div class="lg:col-span-8 space-y-6" id="asset-feed">
-                <!-- ASSET 1 -->
-                <div class="asset-card p-8 rounded-3xl border-l-8" style="border-color: var(--neon-gold); color: var(--neon-gold);">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <h4 class="text-2xl font-black text-white">Aurora Commercial Pad</h4>
-                                <span class="streak-badge">12 Streak 🔥</span>
-                            </div>
-                            <p class="text-gray-500 text-xs mono uppercase">ASSET-77291 | Institutional</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs font-bold uppercase tracking-widest px-3 py-1 bg-gold-500/10 rounded-full" style="color: var(--neon-gold); border: 1px solid var(--neon-gold);">Position_Closed</span>
-                            <div class="text-3xl font-black text-white mt-2">+$125,000</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="flex gap-4">
-                            <div class="sig-orb active" style="color: var(--neon-gold);" onclick="toggleSig(this)">B</div>
-                            <div class="sig-orb active" style="color: var(--neon-gold);" onclick="toggleSig(this)">S</div>
-                            <div class="sig-orb active" style="color: var(--neon-gold);" onclick="toggleSig(this)">A</div>
-                        </div>
-                        <div class="w-48 space-y-1">
-                            <div class="flex justify-between text-[8px] mono uppercase text-gray-500">
-                                <span>Velocity</span>
-                                <span>Optimal</span>
-                            </div>
-                            <div class="progress-container">
-                                <div class="ghost-bar" style="width: 70%"></div>
-                                <div class="liquid-fill" style="width: 100%; color: var(--neon-gold);"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ASSET 2 -->
-                <div class="asset-card p-8 rounded-3xl border-l-8" style="border-color: var(--neon-amber); color: var(--neon-amber);">
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <h4 class="text-2xl font-black text-white">Courtyard Cir.</h4>
-                                <span class="streak-badge" style="background: #555; box-shadow: none;">New Position</span>
-                            </div>
-                            <p class="text-gray-500 text-xs mono uppercase">ASSET-99120 | Residential</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-xs font-bold uppercase tracking-widest px-3 py-1 bg-amber-500/10 rounded-full" style="color: var(--neon-amber); border: 1px solid var(--neon-amber);">Escrow_Velocity</span>
-                            <div class="text-3xl font-black text-white mt-2">+$45,000</div>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="flex gap-4">
-                            <div class="sig-orb active" style="color: var(--neon-amber);" onclick="toggleSig(this)">B</div>
-                            <div class="sig-orb" style="color: var(--neon-amber);" onclick="toggleSig(this)">S</div>
-                            <div class="sig-orb active" style="color: var(--neon-amber);" onclick="toggleSig(this)">A</div>
-                        </div>
-                        <div class="w-48 space-y-1">
-                            <div class="flex justify-between text-[8px] mono uppercase text-gray-500">
-                                <span>Velocity</span>
-                                <span class="text-neon-red">Stalled</span>
-                            </div>
-                            <div class="progress-container">
-                                <div class="ghost-bar" style="width: 80%"></div>
-                                <div class="liquid-fill" style="width: 45%; color: var(--neon-amber);"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SIDEBAR -->
-            <div class="lg:col-span-4 space-y-8">
-                <div class="asset-card p-8 rounded-3xl border-t-4 border-neon-cyan">
-                    <h3 class="text-sm font-black text-neon-cyan uppercase tracking-widest mb-6">Sovereign Leaderboard</h3>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/10">
-                            <div class="flex items-center gap-3">
-                                <span class="text-neon-gold font-black">#1</span>
-                                <span class="text-xs font-bold">Evin Betts</span>
-                            </div>
-                            <span class="text-xs mono text-neon-green">9.8 Velo</span>
-                        </div>
-                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/10">
-                            <div class="flex items-center gap-3">
-                                <span class="text-gray-500 font-black">#2</span>
-                                <span class="text-xs font-bold">Title Node A</span>
-                            </div>
-                            <span class="text-xs mono text-neon-blue">8.4 Velo</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+<body>
+    <div id="asset-container"></div>
     <script>
-        const clickSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3');
-        const winSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
-
-        function checkPasscode() {
-            if (document.getElementById('passcode-input').value === 'Gammer') {
-                document.getElementById('auth-gate').style.display = 'none';
-                document.getElementById('terminal-content').classList.remove('hidden');
-                animateEquity();
-            }
-        }
-
-        function toggleSig(el) {
-            el.classList.toggle('active');
-            clickSound.play();
-            if (window.navigator.vibrate) window.navigator.vibrate(20);
-            
-            if (el.parentElement.querySelectorAll('.active').length === 3) {
-                winSound.play();
-                alert('SOVEREIGN_LOCK: All signatures verified. Transitioning state...');
-            }
-        }
-
-        function animateEquity() {
-            let val = 12542000;
-            const el = document.getElementById('equity-counter');
-            setInterval(() => {
-                val += Math.floor(Math.random() * 1000);
-                el.innerText = '$' + val.toLocaleString();
-            }, 2000);
-        }
-
-        document.getElementById('passcode-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') checkPasscode();
-        });
+        fetch('/api/assets')
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('asset-container');
+                data.forEach(a => {
+                    container.innerHTML += `
+                        <div class="asset-card">
+                            <span class="state-badge">${a.state}</span>
+                            <div style="font-size: 0.9rem">${a.name}</div>
+                            <div class="equity">+$${a.val.toLocaleString()}</div>
+                            <div class="sig-container">
+                                <span class="sig-badge ${a.b ? 'active' : ''}">B</span>
+                                <span class="sig-badge ${a.s ? 'active' : ''}">S</span>
+                                <span class="sig-badge ${a.a ? 'active' : ''}">A</span>
+                            </div>
+                        </div>`;
+                });
+            });
     </script>
 </body>
 </html>
