@@ -6,7 +6,8 @@ const PORT = process.env.PORT || 3000;
 
 // 1. ATOMIC REDIRECT OVERRIDE & ABSOLUTE PATH ROUTING
 // Enforces hard-domain lock for the AbandonedAssetsOS ecosystem.
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname)); // Serve from root
+app.use(express.static(path.join(__dirname, 'public'))); // Serve from public
 
 // JUGGERNAUT-STANDARD: STATIC ROUTING MANIFEST (NASA-LEVEL ACCURACY)
 // Enforces hard-domain lock and bypasses defunct routing fragments.
