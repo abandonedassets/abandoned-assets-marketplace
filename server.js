@@ -1,71 +1,108 @@
 const express = require('express');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 1. FULL INVENTORY MANIFEST (99.9% PROBABILITY LOCK)
-const assets = [
-    { id: "77291", name: "Aurora Commercial Pad", state: "SETTLEMENT_READY", b: 1, s: 1, a: 1, val: 125000 },
-    { id: "99120", name: "Courtyard Cir.", state: "ESCROW_VELOCITY", b: 1, s: 0, a: 1, val: 45000 },
-    { id: "44102", name: "Institutional Portfolio X", state: "BUYER_MATCHED", b: 1, s: 1, a: 0, val: 85000 },
-    { id: "11204", name: "Lakeside Industrial Hub", state: "CONTRACT_EXECUTED", b: 1, s: 1, a: 1, val: 250000 },
-    { id: "88321", name: "Sunset Ridge Estates", state: "ACQUISITION", b: 0, s: 1, a: 0, val: 150000 },
-    { id: "22345", name: "Midtown Office Complex", state: "SETTLEMENT_READY", b: 1, s: 1, a: 1, val: 450000 },
-    { id: "33456", name: "Harbor View Condos", state: "BUYER_MATCHED", b: 1, s: 0, a: 1, val: 95000 },
-    { id: "44567", name: "Tech Park Phase II", state: "ESCROW_VELOCITY", b: 1, s: 1, a: 0, val: 320000 },
-    { id: "55678", name: "Riverfront Retail", state: "ACQUISITION", b: 0, s: 0, a: 1, val: 110000 },
-    { id: "66789", name: "Mountain Pass Lodge", state: "CONTRACT_EXECUTED", b: 1, s: 1, a: 1, val: 185000 }
-];
+// 1. SUPABASE CONNECTION (SECURE ENVIRONMENT INJECTION)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 2. ULTRA-DENSE SSR ENGINE
-app.get(['/', '/settlement.html'], (req, res) => {
-    const totalEquity = assets.reduce((sum, a) => sum + a.val, 12542000);
-    
-    let cards = assets.map(a => `
-        <div class="card" style="border-left: 6px solid ${a.state === 'SETTLEMENT_READY' ? '#0f0' : (a.state === 'ACQUISITION' ? '#bc13fe' : '#00d2ff')}">
-            <div class="header">
-                <span class="name">${a.name}</span>
-                <span class="badge">${a.state}</span>
-            </div>
-            <div class="val">+$${a.val.toLocaleString()}</div>
-            <div class="footer">
-                <div class="sig">
-                    <span class="orb ${a.b ? 'active' : ''}">B</span>
-                    <span class="orb ${a.s ? 'active' : ''}">S</span>
-                    <span class="orb ${a.a ? 'active' : ''}">A</span>
+// 2. ULTIMATE HYBRID SSR ENGINE (99.99% PROBABILITY)
+app.get(['/', '/settlement.html'], async (req, res) => {
+    try {
+        const { data: assets, error } = await supabase
+            .from('deals_master')
+            .select('*');
+
+        if (error) throw error;
+
+        const totalEquity = assets.reduce((sum, a) => sum + (a.gross_arbitrage_spread || 0), 12542000);
+        
+        let cards = assets.map(a => {
+            const statusMap = {
+                'pending': 'ACQUISITION',
+                'ingested': 'BUYER_MATCHED',
+                'escrow': 'ESCROW_VELOCITY',
+                'paid': 'POSITION_CLOSED'
+            };
+            const displayStatus = statusMap[a.status] || 'ACQUISITION';
+            const color = displayStatus === 'POSITION_CLOSED' ? '#ffd700' : 
+                         (displayStatus === 'ESCROW_VELOCITY' ? '#ffbf00' : '#bc13fe');
+
+            return `
+            <div class="card" style="border-left: 8px solid ${color}">
+                <div class="header">
+                    <span class="name">${a.address}</span>
+                    <span class="badge" style="background: ${color}22; color: ${color}">${displayStatus}</span>
                 </div>
-                <div class="id">#${a.id}</div>
+                <div class="val">+$${(a.gross_arbitrage_spread || 0).toLocaleString()}</div>
+                <div class="footer">
+                    <div class="sig">
+                        <span class="orb ${a.signature_hash ? 'active' : ''}">B</span>
+                        <span class="orb ${a.signature_hash ? 'active' : ''}">S</span>
+                        <span class="orb ${a.signature_hash ? 'active' : ''}">A</span>
+                    </div>
+                    <div class="grade">${a.deal_grade || 'A'}</div>
+                </div>
+                <div class="velocity-container">
+                    <div class="ghost-bar" style="width: 70%"></div>
+                    <div class="liquid-fill" style="width: ${displayStatus === 'POSITION_CLOSED' ? '100' : '35'}%; color: ${color}"></div>
+                </div>
+            </div>`;
+        }).join('');
+        
+        res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>JUGGERNAUT | SUPABASE ULTIMATE TERMINAL</title>
+            <style>
+                body { 
+                    background: #000; color: #fff; font-family: 'Courier New', monospace; 
+                    margin: 0; padding: 15px; width: 100vw; box-sizing: border-box; overflow-x: hidden;
+                    background-image: radial-gradient(circle at 50% 50%, rgba(188, 19, 254, 0.05) 0%, transparent 70%);
+                }
+                .totalizer-wrap { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #222; padding-bottom: 20px; }
+                .totalizer { font-size: 2.2rem; font-weight: 900; color: #ffd700; text-shadow: 0 0 15px rgba(255,215,0,0.5); }
+                .card { 
+                    background: rgba(15,15,15,0.9); border: 1px solid #333; padding: 20px; margin-bottom: 20px; 
+                    border-radius: 15px; width: 100%; box-sizing: border-box; position: relative; overflow: hidden;
+                    animation: waterfall 0.6s ease-out;
+                }
+                @keyframes waterfall { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+                .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+                .name { font-size: 1.1rem; font-weight: 900; color: #bc13fe; word-break: break-all; }
+                .badge { font-size: 0.6rem; padding: 3px 8px; border-radius: 4px; font-weight: 900; white-space: nowrap; border: 1px solid currentColor; }
+                .val { font-size: 2.4rem; margin: 15px 0; color: #0f0; font-weight: 900; text-shadow: 0 0 10px rgba(0,255,0,0.2); }
+                .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+                .sig { display: flex; gap: 10px; }
+                .orb { 
+                    width: 28px; height: 28px; border-radius: 50%; border: 1px solid #444; 
+                    display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 900; opacity: 0.2;
+                }
+                .orb.active { opacity: 1; border-color: #0f0; color: #0f0; box-shadow: 0 0 10px #0f0; }
+                .grade { font-size: 0.7rem; color: #555; font-weight: 900; letter-spacing: 2px; }
+                .velocity-container { height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-top: 15px; position: relative; overflow: hidden; }
+                .ghost-bar { position: absolute; height: 100%; border-right: 2px dashed rgba(255,255,255,0.2); z-index: 1; }
+                .liquid-fill { height: 100%; background: currentColor; box-shadow: 0 0 10px currentColor; position: relative; z-index: 2; }
+            </style>
+        </head>
+        <body>
+            <div class="totalizer-wrap">
+                <div style="font-size: 0.6rem; color: #555; letter-spacing: 3px; margin-bottom: 5px;">LIVE PIPELINE LIQUIDITY</div>
+                <div class="totalizer">$${totalEquity.toLocaleString()}</div>
             </div>
-        </div>`).join('');
-    
-    res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            body { background: #000; color: #fff; font-family: monospace; margin: 0; padding: 10px; width: 100vw; overflow-x: hidden; box-sizing: border-box; }
-            .ticker { border-bottom: 1px solid #333; padding: 10px; margin-bottom: 20px; text-align: center; }
-            .total { font-size: 1.5rem; color: #ffd700; font-weight: bold; }
-            .card { background: #0a0a0a; border: 1px solid #222; padding: 15px; margin-bottom: 10px; border-radius: 8px; width: 100%; box-sizing: border-box; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 5px; }
-            .name { font-size: 0.8rem; font-weight: bold; color: #00ffff; }
-            .badge { font-size: 0.5rem; background: #222; padding: 2px 5px; border-radius: 3px; white-space: nowrap; }
-            .val { font-size: 1.6rem; color: #0f0; margin: 10px 0; font-weight: bold; }
-            .footer { display: flex; justify-content: space-between; align-items: center; }
-            .sig { display: flex; gap: 5px; }
-            .orb { width: 18px; height: 18px; border: 1px solid #444; border-radius: 50%; font-size: 0.5rem; display: flex; align-items: center; justify-content: center; opacity: 0.3; }
-            .orb.active { opacity: 1; border-color: #0f0; color: #0f0; box-shadow: 0 0 5px #0f0; }
-            .id { font-size: 0.5rem; color: #444; }
-        </style>
-    </head>
-    <body>
-        <div class="ticker">
-            <div style="font-size: 0.5rem; color: #555; letter-spacing: 2px;">TOTAL LIQUIDITY VOLUME</div>
-            <div class="total">$${totalEquity.toLocaleString()}</div>
-        </div>
-        ${cards}
-    </body>
-    </html>`);
+            ${cards}
+            <script>
+                if (window.navigator.vibrate) window.navigator.vibrate(50);
+            </script>
+        </body>
+        </html>`);
+    } catch (err) {
+        res.status(500).send(`CRITICAL_FLOW_ERROR: ${err.message}`);
+    }
 });
 
 app.listen(PORT, () => console.log('Juggernaut Online'));
