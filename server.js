@@ -7,45 +7,53 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const PORT = process.env.PORT || 3000;
 
-// JUGGERNAUT REACTIVE ENGINE: SUPABASE CONNECTION
+// JUGGERNAUT BREAK-PROOF: SUPABASE INITIALIZATION
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
   auth: { persistSession: false },
   db: { schema: 'public' }
 });
 
-// HARDENED MATH SANITIZATION MIDDLEWARE
-const sanitizeValue = (val) => Math.abs(parseFloat(val || 0));
+// SERVER-SIDE SANITIZATION FORTRESS
+const sanitizeAsset = (a) => ({
+    ...a,
+    gross_arbitrage_spread: Math.abs(parseFloat(a.gross_arbitrage_spread || 0)),
+    address: a.address || 'Unknown Asset',
+    status: (a.status || 'Pending').toUpperCase()
+});
 
 app.use(express.json());
 app.use((req, res, next) => {
-    res.setHeader('X-Juggernaut-Engine', 'REACTIVE-V1');
+    res.setHeader('X-Juggernaut-Status', 'BREAK-PROOF-V1');
     next();
 });
 
-// BI-DIRECTIONAL TELEMETRY HEARTBEAT (WebSocket)
+// CIRCUIT BREAKER & REACTIVE STREAM
 wss.on('connection', (ws) => {
     console.log('Juggernaut Subscriber Connected');
     
-    // DELTA-COMPRESSION: Sending only the change (Initial Load)
-    const sendInitialData = async () => {
-        const { data: assets } = await supabase.from('deals_master').select('*').order('created_at', { ascending: false });
-        ws.send(JSON.stringify({ type: 'INITIAL_LOAD', data: assets }));
+    const sendData = async () => {
+        try {
+            const { data: assets } = await supabase.from('deals_master').select('*').order('created_at', { ascending: false });
+            ws.send(JSON.stringify({ type: 'INITIAL_LOAD', data: (assets || []).map(sanitizeAsset) }));
+        } catch (e) {
+            console.error('Circuit Breaker Tripped: Initial Load Failed');
+        }
     };
-    sendInitialData();
+    sendData();
 
     ws.on('message', (message) => {
         if (message === 'HEARTBEAT') ws.send('HEARTBEAT_ACK');
     });
 });
 
-// REACTIVE STREAM LISTENER: Listening for Supabase Changes
+// SUPABASE REALTIME LISTENER
 supabase
   .channel('public:deals_master')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'deals_master' }, payload => {
-    // DELTA-COMPRESSION: Broadcast only the changed row
+    const sanitized = sanitizeAsset(payload.new);
     wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify({ type: 'DELTA_UPDATE', data: payload.new }));
+        client.send(JSON.stringify({ type: 'DELTA_UPDATE', data: sanitized }));
       }
     });
   })
@@ -60,58 +68,65 @@ app.get(['/', '/settlement.html'], (req, res) => {
             .metrics-bar { display: flex; justify-content: space-around; font-size: 0.7rem; color: #00ff00; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
             #asset-list { display: flex; flex-direction: column; gap: 15px; }
             .card { position: relative; background: #0a0a0a; border: 1px solid #222; padding: 15px; border-radius: 12px; transition: all 0.2s; cursor: pointer; }
-            .card.optimistic { opacity: 0.7; border-style: dashed; }
+            .card:active { transform: scale(0.98); background: #111; }
             .val { font-size: 1.8rem; color: #0f0; margin: 10px 0; font-weight: bold; }
             .name { color: #00ffff; font-weight: bold; font-size: 0.9rem; word-break: break-all; }
             .footer { display: flex; justify-content: space-between; font-size: 0.6rem; color: #666; font-weight: bold; }
+            .circuit-breaker { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: #ff4444; z-index: 10000; justify-content: center; align-items: center; text-align: center; font-weight: bold; }
         </style></head><body>
+            <div id="cb" class="circuit-breaker">CIRCUIT BREAKER ACTIVE: RE-ESTABLISHING STREAM...</div>
             <div class="total" id="total-vol">VOLUME: $0</div>
-            <div class="metrics-bar"><span>⚡ JUGGERNAUT REACTIVE</span><span id="heartbeat">HEARTBEAT: OK</span></div>
+            <div class="metrics-bar"><span>⚡ BREAK-PROOF ENGINE</span><span id="heartbeat">HEARTBEAT: OK</span></div>
             <div id="asset-list"></div>
             <script>
-                const ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
-                const assetList = document.getElementById('asset-list');
-                const totalVol = document.getElementById('total-vol');
-                let assets = [];
+                const connect = () => {
+                    const ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
+                    const assetList = document.getElementById('asset-list');
+                    const totalVol = document.getElementById('total-vol');
+                    const cb = document.getElementById('cb');
+                    let assets = [];
 
-                // HARDENED MATH SANITIZATION
-                const formatVal = (val) => Math.abs(parseFloat(val || 0));
+                    const render = () => {
+                        const vol = assets.reduce((sum, a) => sum + a.gross_arbitrage_spread, 0);
+                        totalVol.innerText = 'VOLUME: $' + vol.toLocaleString();
+                        assetList.innerHTML = assets.map(a => \`
+                            <div class="card" id="asset-\${a.id}">
+                                <div class="name">\${a.address}</div>
+                                <div class="val">+\$\${a.gross_arbitrage_spread.toLocaleString()}</div>
+                                <div class="footer">
+                                    <span>STATUS: \${a.status}</span>
+                                    <span>ID: #\${a.id.substring(0,8)}</span>
+                                </div>
+                            </div>\`).join('');
+                    };
 
-                const render = () => {
-                    const vol = assets.reduce((sum, a) => sum + formatVal(a.gross_arbitrage_spread), 0);
-                    totalVol.innerText = 'VOLUME: $' + vol.toLocaleString();
-                    assetList.innerHTML = assets.map(a => \`
-                        <div class="card" id="asset-\${a.id}">
-                            <div class="name">\${a.address || 'Unknown Asset'}</div>
-                            <div class="val">+\$\${formatVal(a.gross_arbitrage_spread).toLocaleString()}</div>
-                            <div class="footer">
-                                <span>STATUS: \${a.status.toUpperCase()}</span>
-                                <span>ID: #\${a.id.substring(0,8)}</span>
-                            </div>
-                        </div>\`).join('');
+                    ws.onmessage = (event) => {
+                        const msg = JSON.parse(event.data);
+                        if (msg.type === 'INITIAL_LOAD') {
+                            assets = msg.data;
+                            render();
+                        } else if (msg.type === 'DELTA_UPDATE') {
+                            const idx = assets.findIndex(a => a.id === msg.data.id);
+                            if (idx !== -1) assets[idx] = msg.data;
+                            else assets.unshift(msg.data);
+                            render();
+                        }
+                    };
+
+                    ws.onclose = () => {
+                        cb.style.display = 'flex';
+                        setTimeout(connect, 2000);
+                    };
+
+                    ws.onopen = () => { cb.style.display = 'none'; };
+
+                    setInterval(() => {
+                        if (ws.readyState === WebSocket.OPEN) ws.send('HEARTBEAT');
+                    }, 5000);
                 };
-
-                ws.onmessage = (event) => {
-                    const msg = JSON.parse(event.data);
-                    if (msg.type === 'INITIAL_LOAD') {
-                        assets = msg.data;
-                        render();
-                    } else if (msg.type === 'DELTA_UPDATE') {
-                        // DELTA-COMPRESSION & OPTIMISTIC UI
-                        const idx = assets.findIndex(a => a.id === msg.data.id);
-                        if (idx !== -1) assets[idx] = msg.data;
-                        else assets.unshift(msg.data);
-                        render();
-                    }
-                };
-
-                // BI-DIRECTIONAL HEARTBEAT
-                setInterval(() => {
-                    if (ws.readyState === WebSocket.OPEN) ws.send('HEARTBEAT');
-                    else document.getElementById('heartbeat').innerText = 'HEARTBEAT: LOST';
-                }, 5000);
+                connect();
             </script>
         </body></html>`);
 });
 
-server.listen(PORT, () => console.log('Juggernaut Reactive Engine Active.'));
+server.listen(PORT, () => console.log('Juggernaut Break-Proof Engine Active.'));
