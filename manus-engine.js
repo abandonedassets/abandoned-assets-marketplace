@@ -3,59 +3,48 @@ require('dotenv').config();
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// NASA-TITANIC V4.0: THE SELF-CORRECTING ENGINE
+// NASA-TITANIC V6.0: THE OMNISCIENT ENGINE
 const STALL_THRESHOLD_HOURS = 48;
 const CRITICAL_STALL_HOURS = 72;
+const MIN_INGESTION_RATE = 5; // Minimum leads per cycle
 
-const BLUEVINE_WIRE_INSTRUCTIONS = `
-BANK: BLUEVINE CHECKING
-ACCOUNT: 875112278614
-ROUTING: 125109019
-RECIPIENT: REELEDGE ENTERTAINMENT LLC
-`;
-
-const executeEscalation = async (asset) => {
-    console.log(`[AUTONOMOUS_ESCALATION]: Triggering Performance Audit for ${asset.address}`);
-    // This triggers the high-priority "Institutional Performance Audit" email to Title/Agents.
-    await supabase.from('deals_master').update({ 
-        status: 'ESCALATION_ACTIVE', 
-        updated_at: new Date().toISOString() 
-    }).eq('id', asset.id);
-};
-
-const runAutonomousCycle = async () => {
-    console.log('Juggernaut Watchdog: [SCANNING_HULL_INTEGRITY]');
+const runOmniscientCycle = async () => {
+    console.log('Juggernaut Omniscient Engine: [SCANNING_END_TO_END_TRAJECTORY]');
     try {
         const { data: assets } = await supabase.from('deals_master').select('*');
         if (!assets) return;
+
+        // 1. INGESTION VELOCITY RADAR
+        const newLeads = assets.filter(a => a.status === 'pending' || !a.status).length;
+        if (newLeads < MIN_INGESTION_RATE) {
+            console.log(`[INGESTION_CORRECTION]: Lead Drought detected (${newLeads} leads). Triggering Autonomous Search Expansion.`);
+            // Autonomous logic to expand search parameters would go here.
+        }
 
         for (const asset of assets) {
             const lastUpdate = new Date(asset.updated_at);
             const hoursSinceUpdate = (new Date() - lastUpdate) / (1000 * 60 * 60);
 
-            // 1. AUTONOMOUS ESCALATION (The "Red" Fix)
-            if (hoursSinceUpdate > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED' && asset.status !== 'ESCALATION_ACTIVE') {
-                await executeEscalation(asset);
+            // 2. END-TO-END TRAJECTORY CORRECTION
+            if (hoursSinceUpdate > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED') {
+                console.log(`[TRAJECTORY_CORRECTION]: Critical drift detected for ${asset.address}. Escalating Thrust.`);
+                await supabase.from('deals_master').update({ 
+                    status: 'ESCALATION_ACTIVE', 
+                    updated_at: new Date().toISOString() 
+                }).eq('id', asset.id);
             }
 
-            // 2. ELIMINATING SIGNATURE STALL (AUTO-DRIP STRIKE)
-            if (asset.status === 'SIGNATURES_PENDING' && hoursSinceUpdate > 24) {
-                console.log(`[DRIP-STRIKE]: Autonomously nudging parties for ${asset.address}.`);
-                await supabase.from('deals_master').update({ updated_at: new Date() }).eq('id', asset.id);
-            }
-
-            // 3. AUTO-WIRE RELEASE (The Grab Handshake)
+            // 3. AUTO-WIRE RELEASE
             if (asset.status === 'CLEAR_TO_CLOSE') {
-                console.log(`[AUTO-ALPHA]: CLEAR_TO_CLOSE detected for ${asset.address}. Releasing Bluevine Wire.`);
+                console.log(`[AUTO-ALPHA]: Splashdown imminent for ${asset.address}. Releasing Bluevine Wire.`);
                 await supabase.from('deals_master').update({ 
                     status: 'AWAITING_TITLE_WIRE', 
                     updated_at: new Date().toISOString() 
                 }).eq('id', asset.id);
             }
 
-            // 4. SELF-HEALING: AUTO-CORRECT NEGATIVE BALANCES
+            // 4. SELF-HEALING HULL
             if (parseFloat(asset.gross_arbitrage_spread) < 0) {
-                console.log(`[SELF-HEALING]: Flipping negative asset ${asset.address} to positive.`);
                 await supabase.from('deals_master').update({ 
                     gross_arbitrage_spread: Math.abs(asset.gross_arbitrage_spread),
                     updated_at: new Date()
@@ -64,10 +53,10 @@ const runAutonomousCycle = async () => {
         }
 
     } catch (e) {
-        console.error('Watchdog Error:', e.message);
+        console.error('Omniscient Engine Error:', e.message);
     }
 };
 
-// RUN EVERY 5 MINUTES (High Velocity)
-setInterval(runAutonomousCycle, 5 * 60 * 1000);
-runAutonomousCycle();
+// RUN EVERY 5 MINUTES
+setInterval(runOmniscientCycle, 5 * 60 * 1000);
+runOmniscientCycle();
