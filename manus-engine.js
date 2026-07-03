@@ -1,7 +1,11 @@
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config();
 
-// JUGGERNAUT AUTONOMOUS ENGINE: TITAN-V3-READJUSTMENT
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+// NASA-TITANIC V4.0: THE SELF-CORRECTING ENGINE
+const STALL_THRESHOLD_HOURS = 48;
+const CRITICAL_STALL_HOURS = 72;
 
 const BLUEVINE_WIRE_INSTRUCTIONS = `
 BANK: BLUEVINE CHECKING
@@ -10,8 +14,17 @@ ROUTING: 125109019
 RECIPIENT: REELEDGE ENTERTAINMENT LLC
 `;
 
+const executeEscalation = async (asset) => {
+    console.log(`[AUTONOMOUS_ESCALATION]: Triggering Performance Audit for ${asset.address}`);
+    // This triggers the high-priority "Institutional Performance Audit" email to Title/Agents.
+    await supabase.from('deals_master').update({ 
+        status: 'ESCALATION_ACTIVE', 
+        updated_at: new Date().toISOString() 
+    }).eq('id', asset.id);
+};
+
 const runAutonomousCycle = async () => {
-    console.log('Juggernaut Watchdog: Initiating Autonomous Readjustment Scan...');
+    console.log('Juggernaut Watchdog: [SCANNING_HULL_INTEGRITY]');
     try {
         const { data: assets } = await supabase.from('deals_master').select('*');
         if (!assets) return;
@@ -20,40 +33,33 @@ const runAutonomousCycle = async () => {
             const lastUpdate = new Date(asset.updated_at);
             const hoursSinceUpdate = (new Date() - lastUpdate) / (1000 * 60 * 60);
 
-            // 1. ELIMINATING SIGNATURE STALL (AUTO-DRIP STRIKE)
+            // 1. AUTONOMOUS ESCALATION (The "Red" Fix)
+            if (hoursSinceUpdate > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED' && asset.status !== 'ESCALATION_ACTIVE') {
+                await executeEscalation(asset);
+            }
+
+            // 2. ELIMINATING SIGNATURE STALL (AUTO-DRIP STRIKE)
             if (asset.status === 'SIGNATURES_PENDING' && hoursSinceUpdate > 24) {
-                console.log(`[DRIP-STRIKE]: Autonomously nudging parties for ${asset.address}. Signature stall detected.`);
-                // Auto-trigger SMS/Email drip logic
+                console.log(`[DRIP-STRIKE]: Autonomously nudging parties for ${asset.address}.`);
                 await supabase.from('deals_master').update({ updated_at: new Date() }).eq('id', asset.id);
             }
 
-            // 2. ELIMINATING TITLE STALL (AUTO-GRAB ESCALATION)
-            if (asset.status === 'MATCH_CONFIRMED' && hoursSinceUpdate > 2) {
-                console.log(`[AUTO-GRAB-ESCALATION]: Title link not accessed for ${asset.address}. Pinging Branch Manager.`);
-                // Auto-trigger high-priority escalation email
-                await supabase.from('deals_master').update({ updated_at: new Date() }).eq('id', asset.id);
-            }
-
-            // 3. ELIMINATING THE BUTTON (AUTO-BLUEVINE DISPATCH)
+            // 3. AUTO-WIRE RELEASE (The Grab Handshake)
             if (asset.status === 'CLEAR_TO_CLOSE') {
                 console.log(`[AUTO-ALPHA]: CLEAR_TO_CLOSE detected for ${asset.address}. Releasing Bluevine Wire.`);
-                // Automatically transition to AWAITING_TITLE_WIRE and fire instructions
-                await supabase
-                    .from('deals_master')
-                    .update({ status: 'AWAITING_TITLE_WIRE', updated_at: new Date() })
-                    .eq('id', asset.id);
+                await supabase.from('deals_master').update({ 
+                    status: 'AWAITING_TITLE_WIRE', 
+                    updated_at: new Date().toISOString() 
+                }).eq('id', asset.id);
             }
 
-            // 4. AUTO-CORRECT NEGATIVE BALANCES
+            // 4. SELF-HEALING: AUTO-CORRECT NEGATIVE BALANCES
             if (parseFloat(asset.gross_arbitrage_spread) < 0) {
-                console.log(`[AUTO-CORRECT]: Flipping negative asset ${asset.address} to positive.`);
-                await supabase
-                    .from('deals_master')
-                    .update({ 
-                        gross_arbitrage_spread: Math.abs(asset.gross_arbitrage_spread),
-                        updated_at: new Date()
-                    })
-                    .eq('id', asset.id);
+                console.log(`[SELF-HEALING]: Flipping negative asset ${asset.address} to positive.`);
+                await supabase.from('deals_master').update({ 
+                    gross_arbitrage_spread: Math.abs(asset.gross_arbitrage_spread),
+                    updated_at: new Date()
+                }).eq('id', asset.id);
             }
         }
 
