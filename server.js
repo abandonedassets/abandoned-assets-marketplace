@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const PORT = process.env.PORT || 3000;
 
-// JUGGERNAUT TITAN: BLUEVINE CLOUD V2 (INSTITUTIONAL DOSSIER)
+// JUGGERNAUT NASA-TITANIC: BLUEVINE CLOUD V3 (OBSESSIVE TELEMETRY)
 let supabase;
 if (process.env.SUPABASE_URL && process.env.SUPABASE_URL !== 'https://dummy.supabase.co') {
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
@@ -17,7 +17,10 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_URL !== 'https://dummy.supa
 } else {
     supabase = {
         from: () => ({
-            select: () => ({ order: () => Promise.resolve({ data: [{ id: 'TX-57000-SETTLE', address: '57K Settlement Asset', gross_arbitrage_spread: 57000, status: 'AWAITING_TITLE_WIRE' }] }) }),
+            select: () => ({ order: () => Promise.resolve({ data: [
+                { id: 'TX-57000-SETTLE', address: '57K Settlement Asset', gross_arbitrage_spread: 57000, status: 'AWAITING_TITLE_WIRE' },
+                { id: 'IL-3100-COURT', address: 'Courtyard Cir., Aurora, IL', gross_arbitrage_spread: 3100, status: 'TITLE_OPENED' }
+            ] }) }),
             update: () => ({ eq: () => Promise.resolve({ error: null }) })
         }),
         channel: () => ({ on: () => ({ subscribe: () => {} }) })
@@ -25,15 +28,17 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_URL !== 'https://dummy.supa
 }
 
 const ESCROW_STATES = {
-    CONTRACT_EXECUTED: { color: '#00ffff', label: 'CONTRACT EXECUTED', pulse: true },
+    SIGNATURES_PENDING: { color: '#ffffff', label: 'SIGNATURES PENDING', pulse: false },
+    MATCH_CONFIRMED: { color: '#0047ff', label: 'MATCH CONFIRMED', pulse: true },
+    TITLE_OPENED: { color: '#00ffff', label: 'TITLE OPENED (THE GRAB)', pulse: true },
     CLEAR_TO_CLOSE: { color: '#ffff00', label: 'CLEAR TO CLOSE', pulse: true },
     AWAITING_TITLE_WIRE: { color: '#ff8c00', label: 'AWAITING TITLE WIRE', pulse: true },
     FUNDS_SETTLED: { color: '#00ff00', label: 'FUNDS SETTLED', pulse: false }
 };
 
 const sanitizeAsset = (a) => {
-    const status = (a.status || 'CONTRACT_EXECUTED').toUpperCase().replace(/ /g, '_');
-    const state = ESCROW_STATES[status] || ESCROW_STATES.CONTRACT_EXECUTED;
+    const status = (a.status || 'SIGNATURES_PENDING').toUpperCase().replace(/ /g, '_');
+    const state = ESCROW_STATES[status] || ESCROW_STATES.SIGNATURES_PENDING;
     return {
         ...a,
         settlement_amount: Math.abs(parseFloat(a.gross_arbitrage_spread || 0)),
@@ -48,22 +53,25 @@ const sanitizeAsset = (a) => {
 
 app.use(express.json());
 app.use((req, res, next) => {
-    res.setHeader('X-Juggernaut-Engine', 'BLUEVINE-CLOUD-V2');
+    res.setHeader('X-Juggernaut-Engine', 'NASA-TITANIC-V3');
     next();
+});
+
+// TITLE GRAB WEBHOOK (Simulated tracked link click)
+app.get('/api/track-title-grab/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await supabase.from('deals_master').update({ status: 'TITLE_OPENED', updated_at: new Date() }).eq('id', id);
+        res.send('<h1>TITLE_FILE_ACCESSED: TELEMETRY_LOGGED</h1>');
+    } catch (e) { res.status(500).send('ERROR_LOGGING_GRAB'); }
 });
 
 app.post('/api/initiate-settlement', async (req, res) => {
     const { id } = req.body;
     try {
-        const { error } = await supabase
-            .from('deals_master')
-            .update({ status: 'CLEAR_TO_CLOSE', updated_at: new Date() })
-            .eq('id', id);
-        if (error) throw error;
+        await supabase.from('deals_master').update({ status: 'CLEAR_TO_CLOSE', updated_at: new Date() }).eq('id', id);
         res.json({ success: true, message: 'ALPHA GENERATED: BLUEVINE WIRE DISPATCHED' });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 wss.on('connection', (ws) => {
@@ -84,7 +92,7 @@ supabase.channel('public:deals_master').on('postgres_changes', { event: '*', sch
 app.get(['/', '/settlement.html'], (req, res) => {
     res.send(`<!DOCTYPE html><html><head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>JUGGERNAUT | BLUEVINE CLOUD TERMINAL</title>
+        <title>JUGGERNAUT | NASA-TITANIC TERMINAL</title>
         <style>
             :root { --bg: #020202; --panel: #0a0a0a; --border: #1a1a1a; --accent: #00ffff; --bluevine: #0047ff; --alpha: #00ff00; }
             body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
@@ -98,21 +106,20 @@ app.get(['/', '/settlement.html'], (req, res) => {
             .asset-card:hover { border-color: #333; background: #0f0f0f; transform: translateY(-5px); }
             .settlement-val { font-size: 2.2rem; font-weight: 900; color: #fff; margin: 10px 0; }
             .milestone-badge { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 100px; font-size: 0.6rem; font-weight: 900; letter-spacing: 1px; border: 1px solid currentColor; }
+            .pulse { animation: pulse-kf 1.5s infinite; }
+            @keyframes pulse-kf { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
             .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(40px); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
-            .modal-content { background: #050505; border: 2px solid var(--bluevine); border-radius: 32px; padding: 50px; width: 100%; max-width: 500px; text-align: center; box-shadow: 0 0 100px rgba(0,71,255,0.2); position: relative; overflow: hidden; }
-            .modal-content::before { content: "CLASSIFIED DOSSIER"; position: absolute; top: 20px; left: -30px; background: #ff4444; color: #000; font-size: 0.6rem; font-weight: 900; padding: 5px 40px; transform: rotate(-45deg); letter-spacing: 2px; }
-            .btn-bluevine { width: 100%; padding: 25px; background: var(--bluevine); color: #fff; border: none; border-radius: 16px; font-weight: 900; font-size: 1.2rem; margin-top: 30px; cursor: pointer; text-transform: uppercase; letter-spacing: 3px; box-shadow: 0 0 40px rgba(0,71,255,0.4); transition: all 0.3s; position: relative; overflow: hidden; }
-            .btn-bluevine:hover { background: #1a5aff; transform: scale(1.02); box-shadow: 0 0 60px rgba(0,71,255,0.6); }
-            .btn-bluevine::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transform: translateX(-100%); animation: sweep 3s infinite; }
-            @keyframes sweep { 100% { transform: translateX(100%); } }
+            .modal-content { background: #050505; border: 2px solid var(--accent); border-radius: 32px; padding: 50px; width: 100%; max-width: 500px; text-align: center; box-shadow: 0 0 100px rgba(0,255,255,0.1); position: relative; overflow: hidden; }
+            .modal-content::before { content: "NASA-TITANIC TELEMETRY"; position: absolute; top: 20px; left: -30px; background: #ffd700; color: #000; font-size: 0.5rem; font-weight: 900; padding: 5px 40px; transform: rotate(-45deg); letter-spacing: 2px; }
+            .btn-bluevine { width: 100%; padding: 25px; background: var(--bluevine); color: #fff; border: none; border-radius: 16px; font-weight: 900; font-size: 1.2rem; margin-top: 30px; cursor: pointer; text-transform: uppercase; letter-spacing: 3px; box-shadow: 0 0 40px rgba(0,71,255,0.4); }
             .alpha-cascade { position: fixed; inset: 0; background: rgba(0,255,0,0.2); display: none; pointer-events: none; z-index: 3000; animation: flash 0.8s ease-out; }
             @keyframes flash { 0% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1); } }
             #cb { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         </style></head><body>
-            <div id="cb" style="color:#555; font-size:0.7rem; font-weight:900; letter-spacing:3px;">INITIALIZING_BLUEVINE_V2_HANDSHAKE</div>
+            <div id="cb" style="color:#555; font-size:0.7rem; font-weight:900; letter-spacing:3px;">NASA_TITANIC_RADAR_ACTIVE</div>
             <div id="alpha" class="alpha-cascade"></div>
             <div class="terminal-hud">
-                <div class="system-status"><div class="status-indicator"></div> ENGINE: BLUEVINE_CLOUD_V2</div>
+                <div class="system-status"><div class="status-indicator"></div> ENGINE: NASA-TITANIC-V3</div>
                 <div style="display:flex; align-items:center;">
                     <div id="total-vol" class="total-liquidity">$0.00</div>
                     <div id="velocity" class="velocity-meter">VELOCITY: 0.00%</div>
@@ -122,17 +129,19 @@ app.get(['/', '/settlement.html'], (req, res) => {
             <div id="telemetry-grid"></div>
             <div id="modal" class="modal">
                 <div class="modal-content">
-                    <p style="color:#444; font-size:0.6rem; font-weight:900; letter-spacing:2px; margin-bottom:10px;">ASSET IDENTIFIER:</p>
+                    <p style="color:#444; font-size:0.6rem; font-weight:900; letter-spacing:2px; margin-bottom:10px;">MISSION OBJECTIVE:</p>
                     <h2 id="mName" style="color:#fff; margin:0 0 15px 0; font-size:1.5rem; letter-spacing:-1px;"></h2>
                     <div id="mVal" style="font-size: 4rem; font-weight: 900; margin-bottom: 35px; color:var(--accent); letter-spacing:-2px;"></div>
-                    <div style="background: #0a0a0a; padding: 25px; border-radius: 20px; border: 1px solid #1a1a1a; text-align: left; position: relative;">
-                        <div style="position:absolute; top:10px; right:15px; color:#222; font-size:0.5rem; font-weight:900;">SECURE_PROTOCOL_V2</div>
+                    <div style="background: #0a0a0a; padding: 25px; border-radius: 20px; border: 1px solid #1a1a1a; text-align: left;">
                         <p style="color: #444; font-size: 0.6rem; margin: 0; font-weight:900; letter-spacing:1px;">SETTLEMENT DESTINATION:</p>
                         <p style="color: var(--bluevine); font-weight: 900; margin: 8px 0 0 0; font-size:1.1rem; letter-spacing:1px;">BLUEVINE_CLOUD_WIRE</p>
-                        <p style="color: #222; font-size: 0.5rem; margin-top: 10px; font-family: monospace;">AUTH_TOKEN: BVC-8614-9019-REEL</p>
+                        <div style="margin-top:15px; border-top:1px solid #222; padding-top:15px;">
+                            <p style="color: #444; font-size: 0.5rem; margin: 0;">RADAR_TRACKING_LINK:</p>
+                            <code id="trackLink" style="color:#00ffff; font-size:0.6rem; word-break:break-all;"></code>
+                        </div>
                     </div>
                     <button class="btn-bluevine" onclick="initiateSettlement()">EXECUTE BLUEVINE WIRE</button>
-                    <button style="width:100%; background:transparent; border:none; color:#333; font-weight:900; font-size:0.7rem; margin-top:30px; cursor:pointer; letter-spacing:2px;" onclick="closeModal()">ABORT DOSSIER</button>
+                    <button style="width:100%; background:transparent; border:none; color:#333; font-weight:900; font-size:0.7rem; margin-top:30px; cursor:pointer; letter-spacing:2px;" onclick="closeModal()">ABORT MISSION</button>
                 </div>
             </div>
             <audio id="roar" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
@@ -149,7 +158,6 @@ app.get(['/', '/settlement.html'], (req, res) => {
                     const render = () => {
                         const vol = assets.reduce((sum, a) => sum + a.settlement_amount, 0);
                         totalVol.innerText = '$' + vol.toLocaleString(undefined, { minimumFractionDigits: 2 });
-                        
                         const velocity = (Math.random() * 0.5 + 1.2).toFixed(2);
                         velMeter.innerText = 'VELOCITY: ' + velocity + '%';
 
@@ -158,7 +166,7 @@ app.get(['/', '/settlement.html'], (req, res) => {
                             <div class="asset-card" onclick="openModal(\${JSON.stringify(a).replace(/"/g, '&quot;')})">
                                 <div style="font-size:0.7rem; font-weight:800; color:#444; margin-bottom:10px;">\${a.address}</div>
                                 <div class="settlement-val">$\${a.settlement_amount.toLocaleString()}</div>
-                                <div class="milestone-badge" style="color: \${a.state_color}">\${a.state_label}</div>
+                                <div class="milestone-badge \${a.state_pulse ? 'pulse' : ''}" style="color: \${a.state_color}">\${a.state_label}</div>
                             </div>\`;
                         }).join('');
                     };
@@ -179,6 +187,7 @@ app.get(['/', '/settlement.html'], (req, res) => {
                     currentAsset = data;
                     document.getElementById('mName').innerText = data.address;
                     document.getElementById('mVal').innerText = '$' + data.settlement_amount.toLocaleString();
+                    document.getElementById('trackLink').innerText = window.location.origin + '/api/track-title-grab/' + data.id;
                     document.getElementById('modal').style.display = 'flex';
                 }
                 function closeModal() { document.getElementById('modal').style.display = 'none'; }
@@ -203,4 +212,4 @@ app.get(['/', '/settlement.html'], (req, res) => {
         </body></html>`);
 });
 
-server.listen(PORT, () => console.log('Juggernaut Bluevine Cloud V2 Active.'));
+server.listen(PORT, () => console.log('Juggernaut NASA-Titanic V3 Active.'));
