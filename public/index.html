@@ -382,7 +382,7 @@
                     <div class="deal-card">
                         <div class="deal-header">
                             <div>
-                                <div class="deal-title">${deal.property_address || 'Unknown Property'}</div>
+                                <div class="deal-title">${deal.address || 'Unknown Property'}</div>
                                 <div class="deal-id">ID: ${deal.id}</div>
                             </div>
                             <div class="status-badge ${statusClass} ${pulsingClass}">
@@ -393,12 +393,12 @@
 
                         <div class="deal-body">
                             <div class="deal-row">
-                                <span class="deal-label">Purchase Price:</span>
-                                <span class="deal-value">$${(deal.purchase_price || 0).toLocaleString()}</span>
+                                <span class="deal-label">Cost Basis:</span>
+                                <span class="deal-value">$${(deal.cost_basis || 0).toLocaleString()}</span>
                             </div>
                             <div class="deal-row">
                                 <span class="deal-label">ARV (After Repair):</span>
-                                <span class="deal-value">$${(deal.arv || 0).toLocaleString()}</span>
+                                <span class="deal-value">$${(deal.arv_projection || 0).toLocaleString()}</span>
                             </div>
                             <div class="deal-row">
                                 <span class="deal-label">Gross Arbitrage:</span>
