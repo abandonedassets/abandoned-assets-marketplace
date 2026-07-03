@@ -2,7 +2,13 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const { createClient } = require('@supabase/supabase-js');
+const { fork } = require('child_process');
 require('dotenv').config();
+
+// START AUTONOMOUS ENGINES
+console.log('Juggernaut Engine: Igniting Autonomous Systems...');
+fork('./ingestion-worker.js');
+fork('./manus-engine.js');
 
 const app = express();
 const server = http.createServer(app);
