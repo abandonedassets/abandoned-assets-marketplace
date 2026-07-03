@@ -95,22 +95,18 @@ wss.on('connection', async (ws) => {
 
     ws.send(JSON.stringify({ type: 'INITIAL_LOAD', data: enrichedDeals }));
 
-    const channel = supabase.channel('schema-db-changes');
+    const channel = supabase.channel("schema-db-changes");
+
     channel
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'deals_master' }, (payload) => {
-            const deal = payload.new;
-            const enriched = {
-                ...deal,
-                gross_arbitrage_spread: Math.abs(deal.gross_arbitrage_spread),
-                meta: mapStatus(deal.status, Math.abs(deal.gross_arbitrage_spread), deal.updated_at)
-            };
-            ws.send(JSON.stringify({ type: 'DELTA_UPDATE', data: enriched }));
-        })
-        .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('Successfully subscribed to Realtime channel');
-            }
-        });
+      .on("postgres_changes", { event: "*", schema: "public", table: "deals_master" }, (payload) => {
+          const enriched = payload.new; 
+          ws.send(JSON.stringify({ type: "DELTA_UPDATE", data: enriched }));
+      })
+      .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+              console.log("Successfully subscribed to Realtime channel");
+          }
+      });
 
     ws.on('close', () => channel.unsubscribe());
 });
