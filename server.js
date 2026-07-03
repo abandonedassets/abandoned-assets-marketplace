@@ -95,7 +95,7 @@ wss.on('connection', async (ws) => {
 
     ws.send(JSON.stringify({ type: 'INITIAL_LOAD', data: enrichedDeals }));
 
-    const channel = supabase.channel(\'schema-db-changes\');
+    const channel = supabase.channel('schema-db-changes');
     channel
         .on(\'postgres_changes\', { event: \'*\', schema: \'public\', table: \'deals_master\' }, (payload) => {
             const deal = payload.new;
