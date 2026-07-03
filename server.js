@@ -36,7 +36,7 @@ const sanitizeAsset = (a) => {
     const state = ESCROW_STATES[status] || ESCROW_STATES.CONTRACT_EXECUTED;
     return {
         ...a,
-        settlement_amount: parseFloat(a.gross_arbitrage_spread || 0),
+        settlement_amount: Math.abs(parseFloat(a.gross_arbitrage_spread || 0)),
         address: a.address || 'Unknown Asset',
         status: status,
         state_label: state.label,
