@@ -10,28 +10,50 @@ const wss = new WebSocket.Server({ server });
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// NASA-TITANIC V5.0: PREDICTIVE EXECUTION ENGINE
+// NASA-TITANIC V5.0: PREDICTIVE EXECUTION ENGINE (HARDENED V8.0)
 const calculateSplashdown = (status, updatedAt) => {
-    const s = (status || '').toUpperCase();
-    const lastUpdate = new Date(updatedAt);
-    let etaHours = 0;
+    try {
+        const s = (status || '').toUpperCase();
+        
+        // SAFETY GUARDRAIL: Validate date input
+        if (!updatedAt) return null;
+        const lastUpdate = new Date(updatedAt);
+        
+        // ICEBERG DETECTION: Check for invalid dates
+        if (isNaN(lastUpdate.getTime())) {
+            console.warn(`[HULL_BREACH_DETECTED] Invalid timestamp for status ${s}: ${updatedAt}`);
+            return null;
+        }
+        
+        let etaHours = 0;
+        if (s === 'AWAITING_TITLE_WIRE' || s === 'ESCROW') etaHours = 24;
+        else if (s === 'TITLE_OPENED' || s === 'GRABBED') etaHours = 72;
+        else if (s === 'MATCH_CONFIRMED') etaHours = 120;
+        else return null;
 
-    if (s === 'AWAITING_TITLE_WIRE' || s === 'ESCROW') etaHours = 24;
-    else if (s === 'TITLE_OPENED' || s === 'GRABBED') etaHours = 72;
-    else if (s === 'MATCH_CONFIRMED') etaHours = 120;
-    else return null;
-
-    const splashdown = new Date(lastUpdate.getTime() + etaHours * 60 * 60 * 1000);
-    return splashdown.toISOString();
+        const splashdown = new Date(lastUpdate.getTime() + etaHours * 60 * 60 * 1000);
+        
+        // FINAL SAFETY CHECK: Ensure splashdown is valid
+        if (isNaN(splashdown.getTime())) {
+            console.warn(`[CALCULATION_ERROR] Failed to calculate splashdown for status ${s}`);
+            return null;
+        }
+        
+        return splashdown.toISOString();
+    } catch (error) {
+        console.error(`[EMERGENCY_PROTOCOL] Splashdown calculation failed:`, error.message);
+        return null;
+    }
 };
 
 const mapStatus = (status, spread, updatedAt) => {
     const s = (status || '').toUpperCase();
     const netProfit = spread * 0.7;
     const taxReserve = spread * 0.3;
-    const splashdown = calculateSplashdown(status, updatedAt);
+    try {
+        const splashdown = calculateSplashdown(status, updatedAt);
 
-    let config = { label: 'SIGNATURES PENDING', color: '#ffffff', pulse: false, icon: '📝' };
+        let config = { label: 'SIGNATURES PENDING', color: '#ffffff', pulse: false, icon: '📝' };
 
     if (s === 'FUNDS_SETTLED' || s === 'SETTLED') config = { label: 'FUNDS SETTLED', color: '#00ff00', pulse: false, icon: '💰' };
     else if (s === 'AWAITING_TITLE_WIRE' || s === 'ESCROW') config = { label: 'AWAITING TITLE WIRE', color: '#ff8c00', pulse: true, icon: '📡' };
@@ -39,12 +61,24 @@ const mapStatus = (status, spread, updatedAt) => {
     else if (s === 'MATCH_CONFIRMED') config = { label: 'MATCH CONFIRMED', color: '#0047ff', pulse: true, icon: '🤝' };
     else if (spread > 10000) config = { label: 'HIGH-PROBABILITY DEAL', color: '#ff00ff', pulse: true, icon: '🔥' };
 
-    return {
-        ...config,
-        netProfit: netProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
-        taxReserve: taxReserve.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
-        splashdown: splashdown ? `PREDICTED SPLASHDOWN: ${new Date(splashdown).toLocaleString()}` : 'SCANNING TRAJECTORY...'
-    };
+        return {
+            ...config,
+            netProfit: netProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
+            taxReserve: taxReserve.toLocaleString('en-US', { style: 'currency', currency: 'USD' }),
+            splashdown: splashdown ? `PREDICTED SPLASHDOWN: ${new Date(splashdown).toLocaleString()}` : 'SCANNING TRAJECTORY...'
+        };
+    } catch (error) {
+        console.error(`[MAPSTATUS_ERROR] Failed to map status:`, error.message);
+        return {
+            label: 'SYSTEM_ERROR',
+            color: '#ff0000',
+            pulse: false,
+            icon: '⚠️',
+            netProfit: '$0.00',
+            taxReserve: '$0.00',
+            splashdown: 'ERROR: TRAJECTORY UNKNOWN'
+        };
+    }
 };
 
 app.use(express.static('public'));
