@@ -3,40 +3,51 @@ require('dotenv').config();
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// NASA-TITANIC V6.0: THE OMNISCIENT ENGINE
+// NASA-TITANIC V7.0: THE TITANIC SAFETY THROTTLE
 const STALL_THRESHOLD_HOURS = 48;
 const CRITICAL_STALL_HOURS = 72;
-const MIN_INGESTION_RATE = 5; // Minimum leads per cycle
+const MAX_ESCALATIONS_PER_HOUR = 5;
+const ANOMALY_THRESHOLD_PERCENT = 0.20; // 20% of deals stalling = Anomaly
 
-const runOmniscientCycle = async () => {
-    console.log('Juggernaut Omniscient Engine: [SCANNING_END_TO_END_TRAJECTORY]');
+let hourlyEscalationCount = 0;
+setInterval(() => { hourlyEscalationCount = 0; }, 60 * 60 * 1000); // Reset every hour
+
+const runSafetyCycle = async () => {
+    console.log('Juggernaut Safety Engine: [SCANNING_HULL_INTEGRITY]');
     try {
         const { data: assets } = await supabase.from('deals_master').select('*');
         if (!assets) return;
 
-        // 1. INGESTION VELOCITY RADAR
-        const newLeads = assets.filter(a => a.status === 'pending' || !a.status).length;
-        if (newLeads < MIN_INGESTION_RATE) {
-            console.log(`[INGESTION_CORRECTION]: Lead Drought detected (${newLeads} leads). Triggering Autonomous Search Expansion.`);
-            // Autonomous logic to expand search parameters would go here.
+        // 1. ANOMALY DETECTION (Systemic Iceberg)
+        const stallingAssets = assets.filter(a => a.status === 'ESCALATION_ACTIVE').length;
+        const stallRatio = stallingAssets / assets.length;
+
+        if (stallRatio > ANOMALY_THRESHOLD_PERCENT) {
+            console.log(`[SAFETY_PAUSE]: Systemic Anomaly detected (${(stallRatio * 100).toFixed(1)}%). Entering Shadow Mode.`);
+            return; // Pause all autonomous escalations
         }
 
         for (const asset of assets) {
             const lastUpdate = new Date(asset.updated_at);
             const hoursSinceUpdate = (new Date() - lastUpdate) / (1000 * 60 * 60);
 
-            // 2. END-TO-END TRAJECTORY CORRECTION
-            if (hoursSinceUpdate > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED') {
-                console.log(`[TRAJECTORY_CORRECTION]: Critical drift detected for ${asset.address}. Escalating Thrust.`);
-                await supabase.from('deals_master').update({ 
-                    status: 'ESCALATION_ACTIVE', 
-                    updated_at: new Date().toISOString() 
-                }).eq('id', asset.id);
+            // 2. RATE-LIMITED ESCALATION
+            if (hoursSinceUpdate > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED' && asset.status !== 'ESCALATION_ACTIVE') {
+                if (hourlyEscalationCount < MAX_ESCALATIONS_PER_HOUR) {
+                    console.log(`[SAFE_ESCALATION]: Triggering Audit for ${asset.address}`);
+                    await supabase.from('deals_master').update({ 
+                        status: 'ESCALATION_ACTIVE', 
+                        updated_at: new Date().toISOString() 
+                    }).eq('id', asset.id);
+                    hourlyEscalationCount++;
+                } else {
+                    console.log(`[THROTTLE_ACTIVE]: Escalation for ${asset.address} queued for next cycle.`);
+                }
             }
 
-            // 3. AUTO-WIRE RELEASE
+            // 3. AUTO-WIRE (Safe Release)
             if (asset.status === 'CLEAR_TO_CLOSE') {
-                console.log(`[AUTO-ALPHA]: Splashdown imminent for ${asset.address}. Releasing Bluevine Wire.`);
+                console.log(`[AUTO-ALPHA]: Splashdown for ${asset.address}. Releasing Wire.`);
                 await supabase.from('deals_master').update({ 
                     status: 'AWAITING_TITLE_WIRE', 
                     updated_at: new Date().toISOString() 
@@ -53,10 +64,10 @@ const runOmniscientCycle = async () => {
         }
 
     } catch (e) {
-        console.error('Omniscient Engine Error:', e.message);
+        console.error('Safety Engine Error:', e.message);
     }
 };
 
 // RUN EVERY 5 MINUTES
-setInterval(runOmniscientCycle, 5 * 60 * 1000);
-runOmniscientCycle();
+setInterval(runSafetyCycle, 5 * 60 * 1000);
+runSafetyCycle();
