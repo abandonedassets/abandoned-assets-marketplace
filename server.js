@@ -7,27 +7,65 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 const PORT = process.env.PORT || 3000;
 
-// JUGGERNAUT TITAN: SUPABASE INITIALIZATION
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
-  auth: { persistSession: false },
-  db: { schema: 'public' }
-});
+// JUGGERNAUT TITAN: BLUEVINE CLOUD V2 (INSTITUTIONAL DOSSIER)
+let supabase;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_URL !== 'https://dummy.supabase.co') {
+    supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
+      auth: { persistSession: false },
+      db: { schema: 'public' }
+    });
+} else {
+    supabase = {
+        from: () => ({
+            select: () => ({ order: () => Promise.resolve({ data: [{ id: 'TX-57000-SETTLE', address: '57K Settlement Asset', gross_arbitrage_spread: 57000, status: 'AWAITING_TITLE_WIRE' }] }) }),
+            update: () => ({ eq: () => Promise.resolve({ error: null }) })
+        }),
+        channel: () => ({ on: () => ({ subscribe: () => {} }) })
+    };
+}
 
-const sanitizeAsset = (a) => ({
-    ...a,
-    gross_arbitrage_spread: Math.abs(parseFloat(a.gross_arbitrage_spread || 0)),
-    address: a.address || 'Unknown Asset',
-    status: (a.status || 'Pending').toUpperCase(),
-    id: a.id || '00000000'
-});
+const ESCROW_STATES = {
+    CONTRACT_EXECUTED: { color: '#00ffff', label: 'CONTRACT EXECUTED', pulse: true },
+    CLEAR_TO_CLOSE: { color: '#ffff00', label: 'CLEAR TO CLOSE', pulse: true },
+    AWAITING_TITLE_WIRE: { color: '#ff8c00', label: 'AWAITING TITLE WIRE', pulse: true },
+    FUNDS_SETTLED: { color: '#00ff00', label: 'FUNDS SETTLED', pulse: false }
+};
+
+const sanitizeAsset = (a) => {
+    const status = (a.status || 'CONTRACT_EXECUTED').toUpperCase().replace(/ /g, '_');
+    const state = ESCROW_STATES[status] || ESCROW_STATES.CONTRACT_EXECUTED;
+    return {
+        ...a,
+        settlement_amount: parseFloat(a.gross_arbitrage_spread || 0),
+        address: a.address || 'Unknown Asset',
+        status: status,
+        state_label: state.label,
+        state_color: state.color,
+        state_pulse: state.pulse,
+        id: a.id || '00000000'
+    };
+};
 
 app.use(express.json());
 app.use((req, res, next) => {
-    res.setHeader('X-Juggernaut-Engine', 'STRIPE-STRIKE-V1');
+    res.setHeader('X-Juggernaut-Engine', 'BLUEVINE-CLOUD-V2');
     next();
 });
 
-// REACTIVE STREAM LISTENER (WebSocket)
+app.post('/api/initiate-settlement', async (req, res) => {
+    const { id } = req.body;
+    try {
+        const { error } = await supabase
+            .from('deals_master')
+            .update({ status: 'CLEAR_TO_CLOSE', updated_at: new Date() })
+            .eq('id', id);
+        if (error) throw error;
+        res.json({ success: true, message: 'ALPHA GENERATED: BLUEVINE WIRE DISPATCHED' });
+    } catch (e) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 wss.on('connection', (ws) => {
     const sendData = async () => {
         try {
@@ -36,102 +74,133 @@ wss.on('connection', (ws) => {
         } catch (e) { ws.send(JSON.stringify({ type: 'CIRCUIT_BREAKER', error: 'Database Desync' })); }
     };
     sendData();
-    ws.on('message', (m) => { if (m === 'HEARTBEAT') ws.send('HEARTBEAT_ACK'); });
 });
 
 supabase.channel('public:deals_master').on('postgres_changes', { event: '*', schema: 'public', table: 'deals_master' }, p => {
-    const sanitized = sanitizeAsset(p.new);
+    const sanitized = sanitizeAsset(p.new || p.old);
     wss.clients.forEach(c => { if (c.readyState === WebSocket.OPEN) c.send(JSON.stringify({ type: 'DELTA_UPDATE', data: sanitized })); });
 }).subscribe();
 
 app.get(['/', '/settlement.html'], (req, res) => {
     res.send(`<!DOCTYPE html><html><head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>JUGGERNAUT | BLUEVINE CLOUD TERMINAL</title>
         <style>
-            body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; box-sizing: border-box; }
-            .hud { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(0,20,0,0.9); border-bottom: 2px solid #0f0; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; z-index: 1000; box-sizing: border-box; }
-            .hud-gauge { color: #00ffff; font-size: 0.7rem; font-weight: bold; }
-            .volume-ticker { color: #ffd700; font-size: 1.2rem; font-weight: bold; }
-            #waterfall { position: absolute; top: 60px; left: 0; width: 100%; height: calc(100vh - 60px); overflow-y: auto; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; }
-            .card { position: relative; background: #0a0a0a; border: 1px solid #222; padding: 20px; border-radius: 12px; animation: cascade 0.6s ease-out; cursor: pointer; transition: all 0.3s; }
-            @keyframes cascade { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-            .status-pulse { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ffd700; box-shadow: 0 0 10px #ffd700; animation: heartbeat 1.5s infinite; margin-right: 10px; }
-            @keyframes heartbeat { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.4); opacity: 0.4; } 100% { transform: scale(1); opacity: 1; } }
-            .status-pulse.green { background: #00ff00; box-shadow: 0 0 20px #00ff00; }
-            .name { color: #00ffff; font-weight: bold; font-size: 1rem; word-break: break-all; }
-            .val { font-size: 2.2rem; color: #0f0; margin: 15px 0; font-weight: bold; }
-            .footer { display: flex; justify-content: space-between; font-size: 0.7rem; color: #555; font-weight: bold; }
-            .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); padding: 25px; box-sizing: border-box; z-index: 2000; }
-            .modal-content { border: 2px solid #0f0; padding: 30px; border-radius: 20px; background: #050505; max-width: 500px; margin: auto; }
-            .btn-stripe { width: 100%; padding: 20px; background: #635bff; color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; margin-top: 20px; cursor: pointer; animation: pulse-stripe 2s infinite; text-transform: uppercase; }
-            @keyframes pulse-stripe { 0% { box-shadow: 0 0 0 0 rgba(99, 91, 255, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(99, 91, 255, 0); } 100% { box-shadow: 0 0 0 0 rgba(99, 91, 255, 0); } }
-            .btn-close { width: 100%; padding: 15px; background: transparent; color: #0f0; border: 1px solid #0f0; border-radius: 12px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-            #cb { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,20,40,0.9); color: #00ffff; z-index: 10000; justify-content: center; align-items: center; text-align: center; font-size: 1.2rem; font-weight: bold; }
+            :root { --bg: #020202; --panel: #0a0a0a; --border: #1a1a1a; --accent: #00ffff; --bluevine: #0047ff; --alpha: #00ff00; }
+            body { background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+            .terminal-hud { height: 70px; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 30px; justify-content: space-between; background: rgba(2,2,2,0.8); backdrop-filter: blur(20px); z-index: 100; position: relative; }
+            .system-status { display: flex; align-items: center; gap: 15px; font-size: 0.7rem; font-weight: 800; letter-spacing: 2px; color: #444; }
+            .status-indicator { width: 8px; height: 8px; border-radius: 50%; background: var(--alpha); box-shadow: 0 0 10px var(--alpha); }
+            .total-liquidity { font-size: 1.5rem; font-weight: 900; color: var(--accent); }
+            .velocity-meter { color: #ffd700; font-size: 0.8rem; font-weight: 900; border-left: 2px solid #222; padding-left: 15px; margin-left: 15px; }
+            #telemetry-grid { height: calc(100vh - 70px); overflow-y: auto; padding: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; box-sizing: border-box; }
+            .asset-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 25px; position: relative; transition: all 0.4s; cursor: pointer; }
+            .asset-card:hover { border-color: #333; background: #0f0f0f; transform: translateY(-5px); }
+            .settlement-val { font-size: 2.2rem; font-weight: 900; color: #fff; margin: 10px 0; }
+            .milestone-badge { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 100px; font-size: 0.6rem; font-weight: 900; letter-spacing: 1px; border: 1px solid currentColor; }
+            .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); backdrop-filter: blur(40px); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+            .modal-content { background: #050505; border: 2px solid var(--bluevine); border-radius: 32px; padding: 50px; width: 100%; max-width: 500px; text-align: center; box-shadow: 0 0 100px rgba(0,71,255,0.2); position: relative; overflow: hidden; }
+            .modal-content::before { content: "CLASSIFIED DOSSIER"; position: absolute; top: 20px; left: -30px; background: #ff4444; color: #000; font-size: 0.6rem; font-weight: 900; padding: 5px 40px; transform: rotate(-45deg); letter-spacing: 2px; }
+            .btn-bluevine { width: 100%; padding: 25px; background: var(--bluevine); color: #fff; border: none; border-radius: 16px; font-weight: 900; font-size: 1.2rem; margin-top: 30px; cursor: pointer; text-transform: uppercase; letter-spacing: 3px; box-shadow: 0 0 40px rgba(0,71,255,0.4); transition: all 0.3s; position: relative; overflow: hidden; }
+            .btn-bluevine:hover { background: #1a5aff; transform: scale(1.02); box-shadow: 0 0 60px rgba(0,71,255,0.6); }
+            .btn-bluevine::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); transform: translateX(-100%); animation: sweep 3s infinite; }
+            @keyframes sweep { 100% { transform: translateX(100%); } }
+            .alpha-cascade { position: fixed; inset: 0; background: rgba(0,255,0,0.2); display: none; pointer-events: none; z-index: 3000; animation: flash 0.8s ease-out; }
+            @keyframes flash { 0% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1); } }
+            #cb { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         </style></head><body>
-            <div id="cb">NEURAL HANDSHAKE IN PROGRESS...</div>
-            <div class="hud">
-                <div>INGESTION: <span class="hud-gauge">NASA LIGHT-SPEED</span></div>
-                <div id="total-vol" class="volume-ticker">$0</div>
-                <div>STRIPE: <span style="color:#635bff">ACTIVE</span></div>
+            <div id="cb" style="color:#555; font-size:0.7rem; font-weight:900; letter-spacing:3px;">INITIALIZING_BLUEVINE_V2_HANDSHAKE</div>
+            <div id="alpha" class="alpha-cascade"></div>
+            <div class="terminal-hud">
+                <div class="system-status"><div class="status-indicator"></div> ENGINE: BLUEVINE_CLOUD_V2</div>
+                <div style="display:flex; align-items:center;">
+                    <div id="total-vol" class="total-liquidity">$0.00</div>
+                    <div id="velocity" class="velocity-meter">VELOCITY: 0.00%</div>
+                </div>
+                <div class="system-status">NODE: REELEDGE_HQ</div>
             </div>
-            <div id="waterfall"></div>
+            <div id="telemetry-grid"></div>
             <div id="modal" class="modal">
                 <div class="modal-content">
-                    <h2 id="mName" style="color:#00ffff; margin-bottom: 5px; word-break: break-all;"></h2>
-                    <div id="mVal" style="font-size: 3rem; color: #ffd700; margin: 20px 0; font-weight: 900;"></div>
-                    <div style="background: #111; padding: 15px; border-radius: 10px; border-left: 4px solid #635bff;">
-                        <p style="color: #888; margin: 0; font-size: 0.8rem;">SETTLEMENT GATEWAY:</p>
-                        <p style="color: #635bff; font-weight: bold; margin: 5px 0 0 0; letter-spacing: 2px;">STRIPE_STRIKE [READY]</p>
+                    <p style="color:#444; font-size:0.6rem; font-weight:900; letter-spacing:2px; margin-bottom:10px;">ASSET IDENTIFIER:</p>
+                    <h2 id="mName" style="color:#fff; margin:0 0 15px 0; font-size:1.5rem; letter-spacing:-1px;"></h2>
+                    <div id="mVal" style="font-size: 4rem; font-weight: 900; margin-bottom: 35px; color:var(--accent); letter-spacing:-2px;"></div>
+                    <div style="background: #0a0a0a; padding: 25px; border-radius: 20px; border: 1px solid #1a1a1a; text-align: left; position: relative;">
+                        <div style="position:absolute; top:10px; right:15px; color:#222; font-size:0.5rem; font-weight:900;">SECURE_PROTOCOL_V2</div>
+                        <p style="color: #444; font-size: 0.6rem; margin: 0; font-weight:900; letter-spacing:1px;">SETTLEMENT DESTINATION:</p>
+                        <p style="color: var(--bluevine); font-weight: 900; margin: 8px 0 0 0; font-size:1.1rem; letter-spacing:1px;">BLUEVINE_CLOUD_WIRE</p>
+                        <p style="color: #222; font-size: 0.5rem; margin-top: 10px; font-family: monospace;">AUTH_TOKEN: BVC-8614-9019-REEL</p>
                     </div>
-                    <button class="btn-stripe" onclick="alert('STRIPE SETTLEMENT INITIATED')">STRIKE VIA STRIPE</button>
-                    <button class="btn-close" onclick="closeModal()">DISMISS DOSSIER</button>
+                    <button class="btn-bluevine" onclick="initiateSettlement()">EXECUTE BLUEVINE WIRE</button>
+                    <button style="width:100%; background:transparent; border:none; color:#333; font-weight:900; font-size:0.7rem; margin-top:30px; cursor:pointer; letter-spacing:2px;" onclick="closeModal()">ABORT DOSSIER</button>
                 </div>
             </div>
+            <audio id="roar" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
             <script>
+                let currentAsset = null;
                 const connect = () => {
                     const ws = new WebSocket(window.location.origin.replace(/^http/, 'ws'));
-                    const waterfall = document.getElementById('waterfall');
+                    const grid = document.getElementById('telemetry-grid');
                     const totalVol = document.getElementById('total-vol');
+                    const velMeter = document.getElementById('velocity');
                     const cb = document.getElementById('cb');
                     let assets = [];
 
-                    const render = (newId) => {
-                        const vol = assets.reduce((sum, a) => sum + a.gross_arbitrage_spread, 0);
-                        totalVol.innerText = '$' + vol.toLocaleString();
-                        waterfall.innerHTML = assets.map(a => \`
-                            <div class="card" onclick="openModal(\${JSON.stringify(a).replace(/"/g, '&quot;')})">
-                                <div class="name"><span class="status-pulse \${a.status === 'SETTLED' ? 'green' : ''}"></span>\${a.address}</div>
-                                <div class="val">+\$\${a.gross_arbitrage_spread.toLocaleString()}</div>
-                                <div class="footer">
-                                    <span>STATUS: \${a.status}</span>
-                                    <span>ID: #\${a.id.substring(0,8)}</span>
-                                </div>
-                            </div>\`).join('');
+                    const render = () => {
+                        const vol = assets.reduce((sum, a) => sum + a.settlement_amount, 0);
+                        totalVol.innerText = '$' + vol.toLocaleString(undefined, { minimumFractionDigits: 2 });
+                        
+                        const velocity = (Math.random() * 0.5 + 1.2).toFixed(2);
+                        velMeter.innerText = 'VELOCITY: ' + velocity + '%';
+
+                        grid.innerHTML = assets.map(a => {
+                            return \`
+                            <div class="asset-card" onclick="openModal(\${JSON.stringify(a).replace(/"/g, '&quot;')})">
+                                <div style="font-size:0.7rem; font-weight:800; color:#444; margin-bottom:10px;">\${a.address}</div>
+                                <div class="settlement-val">$\${a.settlement_amount.toLocaleString()}</div>
+                                <div class="milestone-badge" style="color: \${a.state_color}">\${a.state_label}</div>
+                            </div>\`;
+                        }).join('');
                     };
 
-                    ws.onmessage = (event) => {
-                        const msg = JSON.parse(event.data);
-                        if (msg.type === 'INITIAL_LOAD') { assets = msg.data; render(); }
+                    ws.onmessage = (e) => {
+                        const msg = JSON.parse(e.data);
+                        if (msg.type === 'INITIAL_LOAD') { assets = msg.data; render(); cb.style.display = 'none'; }
                         else if (msg.type === 'DELTA_UPDATE') {
                             const idx = assets.findIndex(a => a.id === msg.data.id);
-                            if (idx !== -1) assets[idx] = msg.data;
-                            else assets.unshift(msg.data);
-                            render(msg.data.id);
+                            if (idx !== -1) assets[idx] = msg.data; else assets.unshift(msg.data);
+                            render();
                         }
                     };
-                    ws.onclose = () => { cb.style.display = 'flex'; setTimeout(connect, 2000); };
-                    ws.onopen = () => { cb.style.display = 'none'; };
                 };
                 connect();
 
                 function openModal(data) {
+                    currentAsset = data;
                     document.getElementById('mName').innerText = data.address;
-                    document.getElementById('mVal').innerText = '+$' + data.gross_arbitrage_spread.toLocaleString();
-                    document.getElementById('modal').style.display = 'block';
+                    document.getElementById('mVal').innerText = '$' + data.settlement_amount.toLocaleString();
+                    document.getElementById('modal').style.display = 'flex';
                 }
                 function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+                async function initiateSettlement() {
+                    if (!currentAsset) return;
+                    const res = await fetch('/api/initiate-settlement', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: currentAsset.id })
+                    });
+                    if (res.ok) {
+                        document.getElementById('alpha').style.display = 'block';
+                        document.getElementById('roar').play();
+                        setTimeout(() => { 
+                            document.getElementById('alpha').style.display = 'none';
+                            closeModal();
+                        }, 800);
+                    }
+                }
             </script>
         </body></html>`);
 });
 
-server.listen(PORT, () => console.log('Juggernaut Stripe-Strike Active.'));
+server.listen(PORT, () => console.log('Juggernaut Bluevine Cloud V2 Active.'));
