@@ -10,6 +10,51 @@ const ENTITY_THROTTLE_MINUTES = 60; // Wait 60 mins between pings to the same en
 
 let entityLastPing = {}; // Track pings to Title Companies/Agents
 
+const executeSettlementStrike = async (dealId) => {
+    console.log(`[SETTLEMENT_STRIKE]: Initiating for Deal ID: ${dealId}`);
+    try {
+        const { data: deal, error: fetchError } = await supabase
+            .from("deals_master")
+            .select("*")
+            .eq("id", dealId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        if (!deal) {
+            console.log(`[SETTLEMENT_STRIKE]: Deal ${dealId} not found.`);
+            return;
+        }
+
+        if (deal.status !== "AWAITING_TITLE_WIRE") {
+            console.log(`[SETTLEMENT_STRIKE]: Deal ${dealId} is not in AWAITING_TITLE_WIRE status. Current status: ${deal.status}`);
+            return;
+        }
+
+        const grossArbitrage = deal.gross_arbitrage_spread;
+        const netProfit = grossArbitrage * 0.7;
+        const taxReserve = grossArbitrage * 0.3;
+
+        const { error: updateError } = await supabase
+            .from("deals_master")
+            .update({
+                status: "FUNDS_SETTLED",
+                net_profit: netProfit,
+                tax_reserve: taxReserve,
+                updated_at: new Date().toISOString(),
+                wire_received: false // Reset flag after processing
+            })
+            .eq("id", dealId);
+
+        if (updateError) throw updateError;
+
+        console.log(`[SETTLEMENT_STRIKE]: Deal ${dealId} moved to FUNDS_SETTLED. Net Profit: $${netProfit.toFixed(2)}, Tax Reserve: $${taxReserve.toFixed(2)}`);
+
+    } catch (error) {
+        console.error(`[SETTLEMENT_STRIKE_ERROR]: Failed for Deal ID ${dealId}:`, error.message);
+    }
+};
+
 const runStrategicCycle = async () => {
     console.log('Juggernaut Strategic Engine: [SCANNING_TRAJECTORY_WITH_WISDOM]');
     try {
@@ -60,7 +105,13 @@ const runStrategicCycle = async () => {
                 }
             }
 
-            // 4. SELF-HEALING HULL
+            // 4. SETTLEMENT STRIKE TRIGGER (Database Flag)
+            if (asset.status === 'AWAITING_TITLE_WIRE' && asset.wire_received === true) {
+                console.log(`[SETTLEMENT_STRIKE_TRIGGER]: Wire received for ${asset.address}. Initiating Settlement Strike.`);
+                await executeSettlementStrike(asset.id);
+            }
+
+            // 5. SELF-HEALING HULL
             if (parseFloat(asset.gross_arbitrage_spread) < 0) {
                 await supabase.from('deals_master').update({ 
                     gross_arbitrage_spread: Math.abs(asset.gross_arbitrage_spread),
