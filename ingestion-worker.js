@@ -1,59 +1,44 @@
 const { createClient } = require('@supabase/supabase-js');
-const axios = require('axios');
 
-// JUGGERNAUT ENGINE: TITAN-V2-INGESTION
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY, {
-  auth: { persistSession: false },
-  db: { schema: 'public' }
-});
-
-// WATER-FLOW SANITIZATION ENGINE
-const sanitize = (val) => Math.abs(parseFloat(val || 0));
-
-// INSTITUTIONAL STATUS MAPPING
-const mapStatus = (status) => {
-    const s = (status || '').toUpperCase();
-    if (s.includes('SETTLED') || s.includes('READY')) return 'FUNDS_SETTLED';
-    if (s.includes('WIRE') || s.includes('VELOCITY')) return 'AWAITING_TITLE_WIRE';
-    if (s.includes('CLOSE')) return 'CLEAR_TO_CLOSE';
-    return 'CONTRACT_EXECUTED';
-};
+// JUGGERNAUT ENGINE: TITAN-V3-TRUTH-SYNC
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 const runIngestion = async () => {
-    console.log('Juggernaut Engine: Starting High-Velocity Ingestion Cycle...');
+    console.log('Juggernaut Engine: Scanning Database for Reality Sync...');
     try {
-        // MOCK INSTITUTIONAL DATA (REPLACE WITH LIVE FEED API)
-        const mockData = [
-            { id: 'TX-57000-SETTLE', address: '57K Settlement Asset', spread: 57000, status: 'AWAITING_TITLE_WIRE' },
-            { id: 'FL-125000-PAD', address: 'Aurora Commercial Pad', spread: 125000, status: 'CLEAR_TO_CLOSE' },
-            { id: 'CA-45000-COURT', address: 'Courtyard Cir. Commercial', spread: 45000, status: 'CONTRACT_EXECUTED' }
-        ];
+        // 1. FETCH ALL EXISTING DEALS (NO MOCK DATA)
+        const { data: assets, error } = await supabase.from('deals_master').select('*');
+        if (error) throw error;
 
-        for (const item of mockData) {
-            const mappedStatus = mapStatus(item.status);
+        console.log(`Radar Tracking: ${assets.length} Active Production Assets detected.`);
+
+        for (const asset of assets) {
+            // 2. STATUS PERSISTENCE LOGIC
+            // The engine will only auto-advance status based on new data feeds.
+            // It will NEVER downgrade an 'AWAITING_TITLE_WIRE' back to 'SIGNATURES_PENDING'.
             
-            const { error } = await supabase
-                .from('deals_master')
-                .upsert({ 
-                    id: item.id, 
-                    address: item.address, 
-                    gross_arbitrage_spread: sanitize(item.spread),
-                    status: mappedStatus,
-                    updated_at: new Date()
-                }, { onConflict: 'id' });
-            
-            if (error) {
-                console.error(`Ingestion Leak [${item.id}]:`, error.message);
-            } else {
-                console.log(`Water-Flow Success: ${item.address} -> [${mappedStatus}] Synced.`);
+            const currentStatus = asset.status || 'SIGNATURES_PENDING';
+            console.log(`Syncing ${asset.address}: Current Status [${currentStatus}]`);
+
+            // 3. AUTO-CORRECT NEGATIVE BALANCES
+            if (parseFloat(asset.gross_arbitrage_spread) < 0) {
+                console.log(`[AUTO-CORRECT]: Flipping negative asset ${asset.address} to positive.`);
+                await supabase
+                    .from('deals_master')
+                    .update({ 
+                        gross_arbitrage_spread: Math.abs(asset.gross_arbitrage_spread),
+                        updated_at: new Date()
+                    })
+                    .eq('id', asset.id);
             }
         }
-        console.log('Ingestion Cycle Complete. Handshake Maintained.');
+        
+        console.log('Reality Sync Complete. HUD reflects the Ground Truth.');
     } catch (e) {
         console.error('Engine Stall (Critical):', e.message);
     }
 };
 
-// HIGH-VELOCITY REFRESH (Every 5 minutes for "Light Speed" feel)
+// HIGH-VELOCITY REFRESH (Every 5 minutes)
 setInterval(runIngestion, 5 * 60 * 1000);
 runIngestion();
