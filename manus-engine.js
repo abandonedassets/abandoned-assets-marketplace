@@ -41,7 +41,7 @@ const executeSettlementStrike = async (dealId) => {
                 status: "FUNDS_SETTLED",
                 net_profit: netProfit,
                 tax_reserve: taxReserve,
-                updated_at: new Date().toISOString(),
+                last_ingested_at: new Date().toISOString(),
                 wire_received: false // Reset flag after processing
             })
             .eq("id", dealId);
@@ -67,7 +67,7 @@ const runStrategicCycle = async () => {
         for (const asset of assets) {
             const lastUpdate = new Date(asset.updated_at);
             const hoursSinceUpdate = (new Date() - lastUpdate) / (1000 * 60 * 60);
-            let assetUpdate = { id: asset.id, updated_at: new Date().toISOString() };
+            let assetUpdate = { id: asset.id, last_ingested_at: new Date().toISOString() };
             let needsUpdate = false;
 
             // 1. STRATEGIC COOLDOWN (Don't rush the win into a loss)
