@@ -23,7 +23,7 @@ const runIngestion = async () => {
                     updates.push({
                         id: asset.id,
                         last_ingested_at: new Date().toISOString(),
-                        address: asset.address
+                        address: asset.address || 'UNKNOWN ADDRESS'
                     });
                 }
             }
