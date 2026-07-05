@@ -58,7 +58,7 @@ const executeSettlementStrike = async (dealId) => {
 const runStrategicCycle = async () => {
     console.log('Juggernaut Strategic Engine: [SCANNING_TRAJECTORY_WITH_WISDOM]');
     try {
-        const { data: assets } = await supabase.from('deals_master').select('*');
+        const { data: assets } = await supabase.from("deals_master").select("*").neq("state", "RECONCILED"); // Ingestion Shielding
         if (!assets) return;
 
         const updates = [];
@@ -69,6 +69,45 @@ const runStrategicCycle = async () => {
             const hoursSinceUpdate = (new Date() - lastUpdate) / (1000 * 60 * 60);
             let assetUpdate = { id: asset.id, last_ingested_at: new Date().toISOString(), address: asset.address || 'UNKNOWN ADDRESS' };
             let needsUpdate = false;
+            let velocityScore = asset.velocity_score || 0;
+            let tier1Liquidity = asset.tier_1_liquidity || false;
+            let complianceLock = asset.compliance_lock || false;
+            let titleState = asset.title_state || 'UNVERIFIED';
+            let state = asset.state || 'INGESTED';
+
+            // 1. Velocity Stratification
+            if (asset.target_closing_date) {
+                const closingDate = new Date(asset.target_closing_date);
+                const today = new Date();
+                const diffTime = Math.abs(closingDate.getTime() - today.getTime());
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays >= 14 && diffDays <= 21) {
+                    tier1Liquidity = true;
+                    velocityScore = 100; // High velocity
+                } else if (diffDays < 14) {
+                    velocityScore = 150; // Very high velocity
+                } else {
+                    velocityScore = 50; // Normal velocity
+                }
+            }
+
+            // 2. Statutory Compliance Lock (Placeholder for Ohio SB 155 example)
+            if (asset.market && asset.market.includes('Ohio') && asset.gross_arbitrage_spread > 10000) { // Example condition
+                complianceLock = true;
+            }
+
+            // 3. Title State Machine: Default to UNVERIFIED
+            if (!asset.title_state) {
+                titleState = 'UNVERIFIED';
+            }
+
+            // Update asset properties for UPSERT
+            assetUpdate.velocity_score = velocityScore;
+            assetUpdate.tier_1_liquidity = tier1Liquidity;
+            assetUpdate.compliance_lock = complianceLock;
+            assetUpdate.title_state = titleState;
+            assetUpdate.state = state;
 
             // 1. STRATEGIC COOLDOWN (Don't rush the win into a loss)
             if (hoursSinceUpdate < 1) {
@@ -109,6 +148,19 @@ const runStrategicCycle = async () => {
             if (asset.status === 'AWAITING_TITLE_WIRE' && asset.wire_received === true) {
                 // console.log(`[SETTLEMENT_STRIKE_TRIGGER]: Wire received for ${asset.address}. Initiating Settlement Strike.`); // Commented for high-throughput
                 await executeSettlementStrike(asset.id); // This is already fault-isolated
+            }
+
+            // PHASE 3: INSTITUTIONAL SETTLEMENT AND RECORD LOCKING
+            if (asset.title_state === 'CLEARED' && asset.compliance_lock === false && asset.state !== 'RECONCILED') {
+                // 1. The Execution Payload (Simulated)
+                console.log(`[EXECUTION_PAYLOAD]: Assembling for ${asset.address}.`);
+                // In a real system, this would involve generating disclosures, API calls to vendors, etc.
+
+                // 2. Immutable Ledger Reconciliation
+                assetUpdate.state = 'RECONCILED';
+                needsUpdate = true;
+                console.log(`[LEDGER_RECONCILIATION]: Asset ${asset.address} moved to RECONCILED state.`);
+            }
             }
 
             // 5. SELF-HEALING HULL
