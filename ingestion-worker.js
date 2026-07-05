@@ -23,7 +23,7 @@ const runIngestion = async () => {
                     updates.push({
                         id: asset.id,
                         gross_arbitrage_spread: Math.abs(asset.gross_arbitrage_spread),
-                        updated_at: new Date().toISOString()
+                        last_ingested_at: new Date().toISOString()
                     });
                 }
             }
