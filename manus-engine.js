@@ -59,7 +59,7 @@ const runStrategicCycle = async () => {
     console.log('Juggernaut Strategic Engine: [SCANNING_TRAJECTORY_WITH_WISDOM]');
     try {
         const { data: assets } = await supabase.from("deals_master").select("*").neq("state", "RECONCILED"); // Ingestion Shielding
-        if (!assets) return;
+        if (!assets || assets.length === 0) return;
 
         const updates = [];
         const CHUNK_SIZE = 50; // Institutional standard for connection pool protection
@@ -69,7 +69,7 @@ const runStrategicCycle = async () => {
             const hoursSinceIngestion = (new Date() - lastIngestedAt) / (1000 * 60 * 60);
             
             // Initialize assetUpdate with current asset values and defaults for new columns
-            // Use a new object for assetUpdate to ensure immutability for current asset and clear state for next iteration
+            // This ensures assetUpdate is always defined and has a consistent structure
             let assetUpdate = { 
                 id: asset.id, 
                 last_ingested_at: new Date().toISOString(), 
