@@ -22,7 +22,8 @@ const runIngestion = async () => {
                 if (parseFloat(asset.gross_arbitrage_spread) < 0) {
                     updates.push({
                         id: asset.id,
-                        last_ingested_at: new Date().toISOString()
+                        last_ingested_at: new Date().toISOString(),
+                        address: asset.address
                     });
                 }
             }
