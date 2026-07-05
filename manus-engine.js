@@ -68,7 +68,7 @@ const runStrategicCycle = async () => {
             const lastIngestedAt = new Date(asset.last_ingested_at);
             const hoursSinceIngestion = (new Date() - lastIngestedAt) / (1000 * 60 * 60);
             
-            // Initialize assetUpdate and needsUpdate for each asset
+            // Initialize assetUpdate with current asset values and defaults for new columns
             let assetUpdate = { 
                 id: asset.id, 
                 last_ingested_at: new Date().toISOString(), 
@@ -77,17 +77,12 @@ const runStrategicCycle = async () => {
                 tier_1_liquidity: asset.tier_1_liquidity || false,
                 compliance_lock: asset.compliance_lock || false,
                 title_state: asset.title_state || 'UNVERIFIED',
-                state: asset.state || 'INGESTED'
+                state: asset.state || 'INGESTED',
+                status: asset.status // Carry over existing status
             };
             let needsUpdate = false;
 
-            // Temporary variables for new calculated values
-            let newVelocityScore = assetUpdate.velocity_score;
-            let newTier1Liquidity = assetUpdate.tier_1_liquidity;
-            let newComplianceLock = assetUpdate.compliance_lock;
-            let newTitleState = assetUpdate.title_state;
-            let newState = assetUpdate.state;
-
+            // Apply stratification logic and update assetUpdate directly
             // 1. Velocity Stratification
             if (asset.target_closing_date) {
                 const closingDate = new Date(asset.target_closing_date);
@@ -95,32 +90,43 @@ const runStrategicCycle = async () => {
                 const diffTime = Math.abs(closingDate.getTime() - today.getTime());
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+                let calculatedVelocityScore = assetUpdate.velocity_score;
+                let calculatedTier1Liquidity = assetUpdate.tier_1_liquidity;
+
                 if (diffDays >= 14 && diffDays <= 21) {
-                    newTier1Liquidity = true;
-                    newVelocityScore = 100; // High velocity
+                    calculatedTier1Liquidity = true;
+                    calculatedVelocityScore = 100; // High velocity
                 } else if (diffDays < 14) {
-                    newVelocityScore = 150; // Very high velocity
+                    calculatedVelocityScore = 150; // Very high velocity
                 } else {
-                    newVelocityScore = 50; // Normal velocity
+                    calculatedVelocityScore = 50; // Normal velocity
+                }
+
+                if (assetUpdate.velocity_score !== calculatedVelocityScore) {
+                    assetUpdate.velocity_score = calculatedVelocityScore;
+                    needsUpdate = true;
+                }
+                if (assetUpdate.tier_1_liquidity !== calculatedTier1Liquidity) {
+                    assetUpdate.tier_1_liquidity = calculatedTier1Liquidity;
+                    needsUpdate = true;
                 }
             }
 
             // 2. Statutory Compliance Lock (Placeholder for Ohio SB 155 example)
             if (asset.market && asset.market.includes('Ohio') && asset.gross_arbitrage_spread > 10000) { // Example condition
-                newComplianceLock = true;
+                if (assetUpdate.compliance_lock !== true) {
+                    assetUpdate.compliance_lock = true;
+                    needsUpdate = true;
+                }
             }
 
             // 3. Title State Machine: Default to UNVERIFIED
             if (!asset.title_state) {
-                newTitleState = 'UNVERIFIED';
+                if (assetUpdate.title_state !== 'UNVERIFIED') {
+                    assetUpdate.title_state = 'UNVERIFIED';
+                    needsUpdate = true;
+                }
             }
-
-            // Update assetUpdate properties if they have changed
-            if (assetUpdate.velocity_score !== newVelocityScore) { assetUpdate.velocity_score = newVelocityScore; needsUpdate = true; }
-            if (assetUpdate.tier_1_liquidity !== newTier1Liquidity) { assetUpdate.tier_1_liquidity = newTier1Liquidity; needsUpdate = true; }
-            if (assetUpdate.compliance_lock !== newComplianceLock) { assetUpdate.compliance_lock = newComplianceLock; needsUpdate = true; }
-            if (assetUpdate.title_state !== newTitleState) { assetUpdate.title_state = newTitleState; needsUpdate = true; }
-            if (assetUpdate.state !== newState) { assetUpdate.state = newState; needsUpdate = true; }
 
             // 1. STRATEGIC COOLDOWN (Don't rush the win into a loss)
             if (hoursSinceIngestion < 1) {
@@ -133,7 +139,7 @@ const runStrategicCycle = async () => {
             const lastEntityPing = entityLastPing[entityId] || 0;
             const minutesSinceEntityPing = (new Date() - lastEntityPing) / (1000 * 60);
 
-            if (hoursSinceIngestion > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED' && asset.status !== 'ESCALATION_ACTIVE') {
+            if (hoursSinceIngestion > CRITICAL_STALL_HOURS && assetUpdate.status !== 'FUNDS_SETTLED' && assetUpdate.status !== 'ESCALATION_ACTIVE') {
                 if (minutesSinceEntityPing > ENTITY_THROTTLE_MINUTES) {
                     // console.log(`[STRATEGIC_ESCALATION]: Triggering Audit for ${asset.address}`); // Commented for high-throughput
                     assetUpdate.status = 'ESCALATION_ACTIVE';
@@ -145,39 +151,48 @@ const runStrategicCycle = async () => {
             }
 
             // 3. THE "LOOKOUT" VERIFICATION (Pre-Wire Audit)
-            if (asset.status === 'CLEAR_TO_CLOSE') {
+            if (assetUpdate.status === 'CLEAR_TO_CLOSE') {
                 // console.log(`[LOOKOUT_SCAN]: Verifying wire coordinates for ${asset.address}...`); // Commented for high-throughput
                 const isHullSecure = true; // Simulated check
                 if (isHullSecure) {
                     // console.log(`[AUTO-ALPHA]: Hull Secure. Releasing Wire for ${asset.address}.`); // Commented for high-throughput
-                    assetUpdate.status = 'AWAITING_TITLE_WIRE';
-                    needsUpdate = true;
+                    if (assetUpdate.status !== 'AWAITING_TITLE_WIRE') {
+                        assetUpdate.status = 'AWAITING_TITLE_WIRE';
+                        needsUpdate = true;
+                    }
                 } else {
                     // console.log(`[ABORT_LAUNCH]: Hull Breach detected for ${asset.address}. Wire release aborted.`); // Commented for high-throughput
                 }
             }
 
             // 4. SETTLEMENT STRIKE TRIGGER (Database Flag)
-            if (asset.status === 'AWAITING_TITLE_WIRE' && asset.wire_received === true) {
+            if (assetUpdate.status === 'AWAITING_TITLE_WIRE' && asset.wire_received === true) {
                 // console.log(`[SETTLEMENT_STRIKE_TRIGGER]: Wire received for ${asset.address}. Initiating Settlement Strike.`); // Commented for high-throughput
                 await executeSettlementStrike(asset.id); // This is already fault-isolated
+                // executeSettlementStrike will update the status to FUNDS_SETTLED, so we don't need to push an update here
+                // However, we should mark needsUpdate to ensure the last_ingested_at is updated
+                needsUpdate = true; 
             }
 
             // PHASE 3: INSTITUTIONAL SETTLEMENT AND RECORD LOCKING
-            if (asset.title_state === 'CLEARED' && asset.compliance_lock === false && asset.state !== 'RECONCILED') {
+            if (assetUpdate.title_state === 'CLEARED' && assetUpdate.compliance_lock === false && assetUpdate.state !== 'RECONCILED') {
                 // 1. The Execution Payload (Simulated)
                 console.log(`[EXECUTION_PAYLOAD]: Assembling for ${asset.address}.`);
                 // In a real system, this would involve generating disclosures, API calls to vendors, etc.
 
                 // 2. Immutable Ledger Reconciliation
-                assetUpdate.state = 'RECONCILED';
-                needsUpdate = true;
-                console.log(`[LEDGER_RECONCILIATION]: Asset ${asset.address} moved to RECONCILED state.`);
+                if (assetUpdate.state !== 'RECONCILED') {
+                    assetUpdate.state = 'RECONCILED';
+                    needsUpdate = true;
+                    console.log(`[LEDGER_RECONCILIATION]: Asset ${asset.address} moved to RECONCILED state.`);
+                }
             }
 
             // 5. SELF-HEALING HULL
             if (parseFloat(asset.gross_arbitrage_spread) < 0) {
                 // assetUpdate.gross_arbitrage_spread = Math.abs(asset.gross_arbitrage_spread); // Removed as it's a computed column
+                // This logic should ideally be in ingestion-worker or a separate pre-processing step
+                // For now, if gross_arbitrage_spread is negative, it means it needs correction, so we mark for update
                 needsUpdate = true;
             }
 
