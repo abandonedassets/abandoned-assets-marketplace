@@ -69,6 +69,7 @@ const runStrategicCycle = async () => {
             const hoursSinceIngestion = (new Date() - lastIngestedAt) / (1000 * 60 * 60);
             
             // Initialize assetUpdate with current asset values and defaults for new columns
+            // Use a new object for assetUpdate to ensure immutability for current asset and clear state for next iteration
             let assetUpdate = { 
                 id: asset.id, 
                 last_ingested_at: new Date().toISOString(), 
