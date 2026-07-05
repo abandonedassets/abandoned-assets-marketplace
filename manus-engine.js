@@ -65,8 +65,8 @@ const runStrategicCycle = async () => {
         const CHUNK_SIZE = 50; // Institutional standard for connection pool protection
 
         for (const asset of assets) {
-            const lastUpdate = new Date(asset.updated_at);
-            const hoursSinceUpdate = (new Date() - lastUpdate) / (1000 * 60 * 60);
+            const lastIngestedAt = new Date(asset.last_ingested_at);
+            const hoursSinceIngestion = (new Date() - lastIngestedAt) / (1000 * 60 * 60);
             let assetUpdate = { id: asset.id, last_ingested_at: new Date().toISOString(), address: asset.address || 'UNKNOWN ADDRESS' };
             let needsUpdate = false;
             let velocityScore = asset.velocity_score || 0;
@@ -110,7 +110,7 @@ const runStrategicCycle = async () => {
             assetUpdate.state = state;
 
             // 1. STRATEGIC COOLDOWN (Don't rush the win into a loss)
-            if (hoursSinceUpdate < 1) {
+            if (hoursSinceIngestion < 1) {
                 // console.log(`[STABILIZATION_PHASE]: Asset ${asset.address} is stabilizing. No autonomous thrust.`); // Commented for high-throughput
                 continue;
             }
@@ -120,7 +120,7 @@ const runStrategicCycle = async () => {
             const lastEntityPing = entityLastPing[entityId] || 0;
             const minutesSinceEntityPing = (new Date() - lastEntityPing) / (1000 * 60);
 
-            if (hoursSinceUpdate > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED' && asset.status !== 'ESCALATION_ACTIVE') {
+            if (hoursSinceIngestion > CRITICAL_STALL_HOURS && asset.status !== 'FUNDS_SETTLED' && asset.status !== 'ESCALATION_ACTIVE') {
                 if (minutesSinceEntityPing > ENTITY_THROTTLE_MINUTES) {
                     // console.log(`[STRATEGIC_ESCALATION]: Triggering Audit for ${asset.address}`); // Commented for high-throughput
                     assetUpdate.status = 'ESCALATION_ACTIVE';
