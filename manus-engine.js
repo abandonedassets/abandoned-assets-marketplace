@@ -67,13 +67,26 @@ const runStrategicCycle = async () => {
         for (const asset of assets) {
             const lastIngestedAt = new Date(asset.last_ingested_at);
             const hoursSinceIngestion = (new Date() - lastIngestedAt) / (1000 * 60 * 60);
-            let assetUpdate = { id: asset.id, last_ingested_at: new Date().toISOString(), address: asset.address || 'UNKNOWN ADDRESS' };
+            
+            // Initialize assetUpdate and needsUpdate for each asset
+            let assetUpdate = { 
+                id: asset.id, 
+                last_ingested_at: new Date().toISOString(), 
+                address: asset.address || 'UNKNOWN ADDRESS',
+                velocity_score: asset.velocity_score || 0,
+                tier_1_liquidity: asset.tier_1_liquidity || false,
+                compliance_lock: asset.compliance_lock || false,
+                title_state: asset.title_state || 'UNVERIFIED',
+                state: asset.state || 'INGESTED'
+            };
             let needsUpdate = false;
-            let velocityScore = asset.velocity_score || 0;
-            let tier1Liquidity = asset.tier_1_liquidity || false;
-            let complianceLock = asset.compliance_lock || false;
-            let titleState = asset.title_state || 'UNVERIFIED';
-            let state = asset.state || 'INGESTED';
+
+            // Temporary variables for new calculated values
+            let newVelocityScore = assetUpdate.velocity_score;
+            let newTier1Liquidity = assetUpdate.tier_1_liquidity;
+            let newComplianceLock = assetUpdate.compliance_lock;
+            let newTitleState = assetUpdate.title_state;
+            let newState = assetUpdate.state;
 
             // 1. Velocity Stratification
             if (asset.target_closing_date) {
@@ -83,31 +96,31 @@ const runStrategicCycle = async () => {
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                 if (diffDays >= 14 && diffDays <= 21) {
-                    tier1Liquidity = true;
-                    velocityScore = 100; // High velocity
+                    newTier1Liquidity = true;
+                    newVelocityScore = 100; // High velocity
                 } else if (diffDays < 14) {
-                    velocityScore = 150; // Very high velocity
+                    newVelocityScore = 150; // Very high velocity
                 } else {
-                    velocityScore = 50; // Normal velocity
+                    newVelocityScore = 50; // Normal velocity
                 }
             }
 
             // 2. Statutory Compliance Lock (Placeholder for Ohio SB 155 example)
             if (asset.market && asset.market.includes('Ohio') && asset.gross_arbitrage_spread > 10000) { // Example condition
-                complianceLock = true;
+                newComplianceLock = true;
             }
 
             // 3. Title State Machine: Default to UNVERIFIED
             if (!asset.title_state) {
-                titleState = 'UNVERIFIED';
+                newTitleState = 'UNVERIFIED';
             }
 
-            // Update asset properties for UPSERT
-            assetUpdate.velocity_score = velocityScore;
-            assetUpdate.tier_1_liquidity = tier1Liquidity;
-            assetUpdate.compliance_lock = complianceLock;
-            assetUpdate.title_state = titleState;
-            assetUpdate.state = state;
+            // Update assetUpdate properties if they have changed
+            if (assetUpdate.velocity_score !== newVelocityScore) { assetUpdate.velocity_score = newVelocityScore; needsUpdate = true; }
+            if (assetUpdate.tier_1_liquidity !== newTier1Liquidity) { assetUpdate.tier_1_liquidity = newTier1Liquidity; needsUpdate = true; }
+            if (assetUpdate.compliance_lock !== newComplianceLock) { assetUpdate.compliance_lock = newComplianceLock; needsUpdate = true; }
+            if (assetUpdate.title_state !== newTitleState) { assetUpdate.title_state = newTitleState; needsUpdate = true; }
+            if (assetUpdate.state !== newState) { assetUpdate.state = newState; needsUpdate = true; }
 
             // 1. STRATEGIC COOLDOWN (Don't rush the win into a loss)
             if (hoursSinceIngestion < 1) {
