@@ -1,92 +1,87 @@
-// manus-engine.js
+/**
+ * ARCHITECTURAL BUILD: MANUS-ENGINE.JS
+ * STATUS: MONOLITHIC REFACTOR
+ * PURPOSE: Autonomous Stratification & Settlement
+ */
+
 const { createClient } = require('@supabase/supabase-js');
 
-// 1. INITIALIZATION: Replace with your Environment Variables
+// Initialization: Configuration via Environment Variables
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
- * Main Strategic Cycle
- * Handles Ingestion, Stratification (Phase 2), and Settlement (Phase 3)
+ * runStrategicCycle
+ * Single-pass execution for data orchestration.
  */
 async function runStrategicCycle() {
-    console.log("Strategic Cycle Started: Initiating Data Pipeline...");
+    console.log("Strategic Cycle Initiated: LIGHT SPEED OPTIMIZATION MODE.");
 
     try {
-        // Fetch pending assets
-        const { data: deals, error } = await supabase
+        // Fetch all assets requiring settlement logic
+        const { data: deals, error: fetchError } = await supabase
             .from('deals_master')
             .select('*')
-            .eq('state', 'INGESTED'); // Process only ingested assets
+            .eq('state', 'INGESTED');
 
-        if (error) throw error;
+        if (fetchError) throw fetchError;
         if (!deals || deals.length === 0) {
-            console.log("No pending assets to process.");
+            console.log("Pipeline Clear: No assets in INGESTED state.");
             return;
         }
 
-        // Loop using a robust scoped pattern
+        console.log(`Pipeline Sync: Processing ${deals.length} assets.`);
+
+        // Execution loop with localized scope security
         for (const deal of deals) {
-            // Scope declaration: assetUpdate is declared inside the iteration
-            // This prevents the "undefined" error by ensuring it's fresh for every deal
-            let assetUpdate = {
-                id: deal.id,
-                status: 'PROCESSING',
+            // Scope initialization: Create fresh context for each deal
+            const assetUpdate = {
+                velocity_score: calculateVelocity(deal),
+                tier_1_liquidity: false, // Default
+                compliance_lock: true,   // Phase 3 trigger
+                title_state: 'VERIFIED',
+                state: 'SETTLED',
                 updated_at: new Date().toISOString()
             };
 
+            // Logic gate for Tier 1 Liquidity
+            assetUpdate.tier_1_liquidity = (assetUpdate.velocity_score >= 80);
+
             try {
-                console.log(`Processing Asset ID: ${assetUpdate.id}`);
-
-                // --- PHASE 2: STRATIFICATION LOGIC ---
-                // Assign velocity score and liquidity tier
-                assetUpdate.velocity_score = calculateVelocity(deal);
-                assetUpdate.tier_1_liquidity = (assetUpdate.velocity_score > 80); 
-                assetUpdate.state = 'STRATIFIED';
-
-                // --- PHASE 3: SETTLEMENT LOGIC ---
-                // Apply compliance lock
-                assetUpdate.compliance_lock = true;
-                assetUpdate.title_state = 'VERIFIED';
-                assetUpdate.state = 'SETTLED';
-
-                // Update database
+                // Atomic DB Operation
                 const { error: updateError } = await supabase
                     .from('deals_master')
                     .update(assetUpdate)
-                    .eq('id', assetUpdate.id);
+                    .eq('id', deal.id);
 
                 if (updateError) throw updateError;
-
-                console.log(`Successfully settled Asset ID: ${assetUpdate.id}`);
+                
+                console.log(`[SUCCESS] Asset ID ${deal.id} settled. Tier: ${assetUpdate.tier_1_liquidity ? 'T1' : 'T2'}.`);
 
             } catch (innerError) {
-                // Catch errors per-asset so the entire engine doesn't crash
-                console.error(`Engine Stall on Asset ${assetUpdate.id || 'unknown'}:`, innerError);
-                // Optional: Flag as FAILED in DB if needed
-                await supabase
-                    .from('deals_master')
-                    .update({ state: 'ERROR' })
-                    .eq('id', assetUpdate.id);
+                console.error(`[CRITICAL] Engine stall on Asset ${deal.id}:`, innerError.message);
+                // Continue to next deal rather than aborting the engine
+                continue; 
             }
         }
 
-        console.log("Strategic Cycle Complete.");
+        console.log("Strategic Cycle Execution Complete.");
 
     } catch (globalError) {
-        console.error("Critical Engine Failure:", globalError);
+        console.error("Critical System Failure:", globalError.message);
     }
 }
 
 /**
- * Velocity Calculator Placeholder
- * Replace with your proprietary algorithm
+ * Stratification Algorithm
+ * Calculates velocity_score based on arb_spread_pct.
  */
 function calculateVelocity(deal) {
-    // Basic logic placeholder
-    return deal.arb_spread_pct > 10 ? 90 : 50;
+    const base = deal.arb_spread_pct || 0;
+    // Map spread to 0-100 velocity score
+    return Math.min(Math.floor(base * 5), 100);
 }
 
-// EXECUTION
+// Global Execution
 runStrategicCycle().catch(console.error);
