@@ -113,7 +113,7 @@ const runStrategicCycle = async () => {
 
             // 5. SELF-HEALING HULL
             if (parseFloat(asset.gross_arbitrage_spread) < 0) {
-                assetUpdate.gross_arbitrage_spread = Math.abs(asset.gross_arbitrage_spread);
+                // assetUpdate.gross_arbitrage_spread = Math.abs(asset.gross_arbitrage_spread); // Removed as it's a computed column
                 needsUpdate = true;
             }
 

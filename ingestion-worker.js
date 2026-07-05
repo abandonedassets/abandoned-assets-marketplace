@@ -22,7 +22,6 @@ const runIngestion = async () => {
                 if (parseFloat(asset.gross_arbitrage_spread) < 0) {
                     updates.push({
                         id: asset.id,
-                        gross_arbitrage_spread: Math.abs(asset.gross_arbitrage_spread),
                         last_ingested_at: new Date().toISOString()
                     });
                 }
