@@ -161,7 +161,6 @@ const runStrategicCycle = async () => {
                 needsUpdate = true;
                 console.log(`[LEDGER_RECONCILIATION]: Asset ${asset.address} moved to RECONCILED state.`);
             }
-            }
 
             // 5. SELF-HEALING HULL
             if (parseFloat(asset.gross_arbitrage_spread) < 0) {
