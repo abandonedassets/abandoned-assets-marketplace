@@ -6,8 +6,6 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
-// Configuration: Pulled from Environment Variables ONLY.
-// Uses SUPABASE_KEY (service_role) already set in Render env vars.
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
@@ -45,8 +43,7 @@ async function runStrategicCycle() {
                 tier_1_liquidity: (velocityScore >= 80),
                 compliance_lock: true,
                 title_state: 'VERIFIED',
-                state: 'SETTLED',
-                updated_at: new Date().toISOString()
+                state: 'SETTLED'
             };
 
             try {
@@ -73,7 +70,6 @@ async function runStrategicCycle() {
 
     } catch (globalError) {
         console.error("[FATAL] Critical System Failure:", globalError.message);
-        process.exit(1);
     }
 }
 
