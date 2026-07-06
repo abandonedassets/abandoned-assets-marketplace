@@ -147,3 +147,21 @@ CREATE TABLE IF NOT EXISTS algorithm_broadcast_log (
     success BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- DATABASE LAYER: Dynamic Calculation Enforcement for deals_master
+CREATE OR REPLACE FUNCTION calculate_deal_metrics()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.gross_arbitrage := COALESCE(NEW.arv_projection, 0) - COALESCE(NEW.cost_basis, 0);
+    NEW.net_profit := NEW.gross_arbitrage * 0.7;
+    NEW.tax_reserve := NEW.gross_arbitrage * 0.3;
+    RETURN NEW;
+END;
+$$
+LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS enforce_deal_metrics ON deals_master;
+CREATE TRIGGER enforce_deal_metrics
+BEFORE INSERT OR UPDATE ON deals_master
+FOR EACH ROW
+EXECUTE FUNCTION calculate_deal_metrics();
