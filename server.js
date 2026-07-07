@@ -19,7 +19,7 @@ app.post('/webhook/deal-intake', async (req, res) => {
     try {
         const { error } = await supabase.from('deals_master').insert([{ 
             address: payload.address, 
-            arv: payload.arv, 
+            arv_projection: payload.arv, // FIXED: Corrected column name
             cost_basis: payload.cost_basis, 
             status: 'PENDING_CALCULATION' 
         }]);
