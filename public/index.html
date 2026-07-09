@@ -2,436 +2,104 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juggernaut Terminal - Real Estate Settlement Engine</title>
+    <title>JUGGERNAUT // TACTICAL</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-            color: #e0e0e0;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #00ff00;
-            padding-bottom: 20px;
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
-            margin-bottom: 5px;
-        }
-
-        .header p {
-            color: #00ffff;
-            font-size: 0.9em;
-        }
-
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0, 255, 0, 0.1);
-            border: 1px solid #00ff00;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ff0000;
-            animation: pulse-red 1s infinite;
-        }
-
-        .status-dot.connected {
-            background: #00ff00;
-            animation: pulse-green 1s infinite;
-        }
-
-        @keyframes pulse-green {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        @keyframes pulse-red {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .deals-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
-        }
-
-        .deal-card {
-            background: rgba(20, 30, 60, 0.8);
-            border: 2px solid #00ffff;
-            border-radius: 8px;
-            padding: 20px;
-            transition: all 0.3s ease;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-        }
-
-        .deal-card:hover {
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
-            transform: translateY(-5px);
-        }
-
-        .deal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #00ffff;
-        }
-
-        .deal-title {
-            font-size: 1.3em;
-            color: #00ffff;
-        }
-
-        .deal-id {
-            font-size: 0.8em;
-            color: #888;
-        }
-
-        .status-badge {
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-badge.pulsing {
-            animation: pulse-badge 1.5s infinite;
-        }
-
-        @keyframes pulse-badge {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .deal-body {
-            margin-bottom: 15px;
-        }
-
-        .deal-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 0.95em;
-        }
-
-        .deal-label {
-            color: #00ffff;
-            font-weight: bold;
-        }
-
-        .deal-value {
-            color: #e0e0e0;
-            text-align: right;
-        }
-
-        .financial-section {
-            background: rgba(0, 255, 0, 0.05);
-            border-left: 3px solid #00ff00;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 4px;
-        }
-
-        .splashdown {
-            background: rgba(255, 140, 0, 0.05);
-            border-left: 3px solid #ff8c00;
-            padding: 12px;
-            margin-top: 10px;
-            border-radius: 4px;
-            font-size: 0.9em;
-            color: #ff8c00;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #888;
-        }
-
-        .empty-state p {
-            margin-bottom: 10px;
-        }
-
-        .connection-error {
-            background: rgba(255, 0, 0, 0.1);
-            border: 2px solid #ff0000;
-            color: #ff6666;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #444;
-            color: #666;
-            font-size: 0.85em;
-        }
-
-        /* Status colors */
-        .status-FUNDS_SETTLED,
-        .status-SETTLED {
-            background: rgba(0, 255, 0, 0.2);
-            color: #00ff00;
-            border: 1px solid #00ff00;
-        }
-
-        .status-AWAITING_TITLE_WIRE,
-        .status-ESCROW {
-            background: rgba(255, 140, 0, 0.2);
-            color: #ff8c00;
-            border: 1px solid #ff8c00;
-        }
-
-        .status-TITLE_OPENED,
-        .status-GRABBED {
-            background: rgba(0, 255, 255, 0.2);
-            color: #00ffff;
-            border: 1px solid #00ffff;
-        }
-
-        .status-MATCH_CONFIRMED {
-            background: rgba(0, 71, 255, 0.2);
-            color: #0047ff;
-            border: 1px solid #0047ff;
-        }
-
-        .status-HIGH_PROBABILITY_DEAL {
-            background: rgba(255, 0, 255, 0.2);
-            color: #ff00ff;
-            border: 1px solid #ff00ff;
-        }
-
-        .status-SIGNATURES_PENDING {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            border: 1px solid #ffffff;
-        }
-
-        .status-SYSTEM_ERROR {
-            background: rgba(255, 0, 0, 0.2);
-            color: #ff6666;
-            border: 1px solid #ff0000;
-        }
+        :root { --green: #00ff41; --blue: #00d4ff; --orange: #ff9d00; --bg: #050a0f; --card-bg: #0a141e; }
+        body { background: var(--bg); color: #fff; font-family: 'Courier New', monospace; padding: 20px; margin: 0; }
+        .header-panel { border-bottom: 2px solid var(--green); padding-bottom: 15px; margin-bottom: 20px; text-transform: uppercase; }
+        .header-panel h2 { color: var(--green); margin: 0; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .card { border: 1px solid #1a334d; background: var(--card-bg); padding: 20px; border-left: 4px solid var(--green); transition: 0.3s; }
+        .card:hover { border-left-color: var(--blue); transform: translateY(-3px); }
+        .status-pill { border: 1px solid var(--orange); color: var(--orange); padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; display: inline-block; font-weight: bold; }
+        .row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9rem; }
+        .label { color: var(--blue); }
+        .arb-val { color: var(--green); font-size: 1.1rem; font-weight: bold; }
+        .sys-status { float: right; font-size: 0.8rem; color: var(--blue); margin-top: 5px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>⚙️ JUGGERNAUT TERMINAL</h1>
-        <p>Institutional-Grade Real Estate Settlement Engine | NASA-Titanic Philosophy</p>
+    <div class="header-panel">
+        <div class="sys-status" id="connection-status">Establishing Link...</div>
+        <h2>JUGGERNAUT // ASSET_MONITOR_ACTIVE</h2>
     </div>
+    
+    <div id="deals-grid" class="grid"></div>
 
-    <div class="status-bar">
-        <div class="status-indicator">
-            <div class="status-dot" id="statusDot"></div>
-            <span id="statusText">Connecting...</span>
-        </div>
-        <div id="dealCount" style="color: #00ffff;">Deals: 0</div>
-    </div>
-
-    <div id="connectionError" class="connection-error" style="display: none;">
-        ⚠️ WebSocket connection failed. Attempting to reconnect...
-    </div>
-
-    <div id="dealsContainer" class="deals-container">
-        <div class="empty-state">
-            <p>🔄 Loading deals...</p>
-            <p style="font-size: 0.9em; color: #666;">Connecting to Juggernaut Engine</p>
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>Juggernaut Terminal V8.0 | Real-Time Settlement Tracking | Zero-Trust Architecture</p>
-    </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        let ws = null;
-        let deals = {};
-        let reconnectAttempts = 0;
-        const maxReconnectAttempts = 10;
+        // System Keys Injected
+        const SUPABASE_URL = "https://midneoocykeoquxkjk.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg1NjI4MjMsImV4cCI6MjAzNDEzODQyM30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs";
+        
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let isProcessing = false;
+        const statusIndicator = document.getElementById('connection-status');
 
-        function getProtocol() {
-            return window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        }
+        async function updateDashboard() {
+            if (isProcessing) return;
+            isProcessing = true;
 
-        function connectWebSocket() {
-            const wsUrl = `${getProtocol()}//${window.location.host}`;
-            console.log(`Attempting WebSocket connection to ${wsUrl}`);
+            try {
+                statusIndicator.innerText = "Syncing Data...";
+                
+                // Fetch assets, ordered newest first
+                const { data: assets, error } = await supabase
+                    .from('assets')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
 
-            ws = new WebSocket(wsUrl);
-
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-                updateStatus(true);
-                reconnectAttempts = 0;
-                document.getElementById('connectionError').style.display = 'none';
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const message = JSON.parse(event.data);
-                    
-                    if (message.type === 'INITIAL_LOAD') {
-                        deals = {};
-                        message.data.forEach(deal => {
-                            deals[deal.id] = deal;
-                        });
-                        renderDeals();
-                    } else if (message.type === 'DELTA_UPDATE') {
-                        deals[message.data.id] = message.data;
-                        renderDeals();
-                    }
-                } catch (error) {
-                    console.error('Error processing message:', error);
+                const grid = document.getElementById('deals-grid');
+                
+                if (assets && assets.length > 0) {
+                    grid.innerHTML = assets.map(a => {
+                        const cost = Number(a.cost_basis) || 0;
+                        const arv = Number(a.arv) || 0;
+                        const arb = arv - cost;
+                        
+                        return `
+                            <div class="card">
+                                <h3 style="margin-top:0; color:var(--green)">${a.address || 'UNKNOWN ASSET'}</h3>
+                                <div style="margin-bottom:15px;"><span class="status-pill">${a.status || 'NO STATUS'}</span></div>
+                                <div class="row"><span class="label">COST BASIS:</span> <span>$${cost.toLocaleString()}</span></div>
+                                <div class="row"><span class="label">ARV:</span> <span>$${arv.toLocaleString()}</span></div>
+                                <div class="row" style="border-top:1px solid #222; margin-top:10px; padding-top:10px;">
+                                    <span class="label">ARBITRAGE:</span> 
+                                    <span class="arb-val">$${arb.toLocaleString()}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    statusIndicator.innerText = "System Connected // Live";
+                    statusIndicator.style.color = "var(--green)";
+                } else {
+                    grid.innerHTML = "<div style='color:var(--orange)'>No assets found in database.</div>";
                 }
-            };
-
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                updateStatus(false);
-            };
-
-            ws.onclose = () => {
-                console.log('WebSocket disconnected');
-                updateStatus(false);
-                attemptReconnect();
-            };
-        }
-
-        function updateStatus(connected) {
-            const statusDot = document.getElementById('statusDot');
-            const statusText = document.getElementById('statusText');
-
-            if (connected) {
-                statusDot.classList.add('connected');
-                statusText.textContent = '✓ Connected to Juggernaut Engine';
-            } else {
-                statusDot.classList.remove('connected');
-                statusText.textContent = '✗ Disconnected - Attempting Reconnect';
-                document.getElementById('connectionError').style.display = 'block';
+            } catch (err) {
+                console.error("Sync Error:", err);
+                statusIndicator.innerText = "Connection Failed // Check Console";
+                statusIndicator.style.color = "red";
+            } finally {
+                isProcessing = false;
             }
         }
 
-        function attemptReconnect() {
-            if (reconnectAttempts < maxReconnectAttempts) {
-                reconnectAttempts++;
-                const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30000);
-                console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
-                setTimeout(connectWebSocket, delay);
-            }
-        }
+        // EVENT-DRIVEN SUBSCRIPTION (Zero Manual Burn)
+        supabase.channel('assets_sync')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, (payload) => {
+                console.log("Database transaction detected. Updating view...");
+                updateDashboard();
+            })
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log("Realtime link established.");
+                }
+            });
 
-        function renderDeals() {
-            const container = document.getElementById('dealsContainer');
-            const dealArray = Object.values(deals);
-
-            document.getElementById('dealCount').textContent = `Deals: ${dealArray.length}`;
-
-            if (dealArray.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <p>📭 No deals loaded yet</p>
-                        <p style="font-size: 0.9em; color: #666;">Waiting for data from database...</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = dealArray.map(deal => {
-                const meta = deal.meta || {};
-                const statusClass = `status-${meta.label ? meta.label.replace(/\s+/g, '_').toUpperCase() : 'UNKNOWN'}`;
-                const pulsingClass = meta.pulse ? 'pulsing' : '';
-
-                return `
-                    <div class="deal-card">
-                        <div class="deal-header">
-                            <div>
-                                <div class="deal-title">${deal.address || 'Unknown Property'}</div>
-                                <div class="deal-id">ID: ${deal.id}</div>
-                            </div>
-                            <div class="status-badge ${statusClass} ${pulsingClass}">
-                                <span>${meta.icon || '📋'}</span>
-                                <span>${meta.label || 'UNKNOWN'}</span>
-                            </div>
-                        </div>
-
-                        <div class="deal-body">
-                            <div class="deal-row">
-                                <span class="deal-label">Cost Basis:</span>
-                                <span class="deal-value">$${(deal.cost_basis || 0).toLocaleString()}</span>
-                            </div>
-                            <div class="deal-row">
-                                <span class="deal-label">ARV (After Repair):</span>
-                                <span class="deal-value">$${(deal.arv_projection || 0).toLocaleString()}</span>
-                            </div>
-                            <div class="deal-row">
-                                <span class="deal-label">Gross Arbitrage:</span>
-                                <span class="deal-value" style="color: #ff00ff;">$${(deal.gross_arbitrage_spread || 0).toLocaleString()}</span>
-                            </div>
-
-                            <div class="financial-section">
-                                <div class="deal-row">
-                                    <span class="deal-label">Net Profit (70%):</span>
-                                    <span class="deal-value" style="color: #00ff00;">${meta.netProfit || '$0.00'}</span>
-                                </div>
-                                <div class="deal-row">
-                                    <span class="deal-label">Tax Reserve (30%):</span>
-                                    <span class="deal-value" style="color: #ffaa00;">${meta.taxReserve || '$0.00'}</span>
-                                </div>
-                            </div>
-
-                            <div class="deal-row">
-                                <span class="deal-label">Status:</span>
-                                <span class="deal-value">${deal.status || 'UNKNOWN'}</span>
-                            </div>
-
-                            <div class="splashdown">
-                                ⏱️ ${meta.splashdown || 'SCANNING TRAJECTORY...'}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Initialize connection
-        connectWebSocket();
+        // Initial load execution
+        updateDashboard();
     </script>
 </body>
 </html>
