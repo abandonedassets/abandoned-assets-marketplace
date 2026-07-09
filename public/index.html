@@ -6,8 +6,9 @@
     <style>
         :root { --green: #00ff41; --blue: #00d4ff; --orange: #ff9d00; --bg: #050a0f; --card-bg: #0a141e; }
         body { background: var(--bg); color: #fff; font-family: 'Courier New', monospace; padding: 20px; margin: 0; }
-        .header-panel { border-bottom: 2px solid var(--green); padding-bottom: 15px; margin-bottom: 20px; text-transform: uppercase; }
+        .header-panel { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--green); padding-bottom: 15px; margin-bottom: 20px; text-transform: uppercase; }
         .header-panel h2 { color: var(--green); margin: 0; }
+        .sys-status { font-size: 0.8rem; color: var(--blue); font-weight: bold; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
         .card { border: 1px solid #1a334d; background: var(--card-bg); padding: 20px; border-left: 4px solid var(--green); transition: 0.3s; }
         .card:hover { border-left-color: var(--blue); transform: translateY(-3px); }
@@ -15,35 +16,33 @@
         .row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9rem; }
         .label { color: var(--blue); }
         .arb-val { color: var(--green); font-size: 1.1rem; font-weight: bold; }
-        .sys-status { float: right; font-size: 0.8rem; color: var(--blue); margin-top: 5px; }
+        .empty-state { color: var(--orange); padding: 20px; border: 1px dashed var(--orange); font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="header-panel">
-        <div class="sys-status" id="connection-status">Establishing Link...</div>
         <h2>JUGGERNAUT // ASSET_MONITOR_ACTIVE</h2>
+        <div class="sys-status" id="connection-status">ESTABLISHING LINK...</div>
     </div>
     
     <div id="deals-grid" class="grid"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // System Keys Injected
         const SUPABASE_URL = "https://midneoocykeoquxkjk.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg1NjI4MjMsImV4cCI6MjAzNDEzODQyM30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs";
         
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let isProcessing = false;
+        
         const statusIndicator = document.getElementById('connection-status');
+        const grid = document.getElementById('deals-grid');
 
         async function updateDashboard() {
             if (isProcessing) return;
             isProcessing = true;
 
             try {
-                statusIndicator.innerText = "Syncing Data...";
-                
-                // Fetch assets, ordered newest first
                 const { data: assets, error } = await supabase
                     .from('assets')
                     .select('*')
@@ -51,8 +50,6 @@
                 
                 if (error) throw error;
 
-                const grid = document.getElementById('deals-grid');
-                
                 if (assets && assets.length > 0) {
                     grid.innerHTML = assets.map(a => {
                         const cost = Number(a.cost_basis) || 0;
@@ -72,31 +69,30 @@
                             </div>
                         `;
                     }).join('');
-                    statusIndicator.innerText = "System Connected // Live";
+                    
+                    statusIndicator.innerText = "SYSTEM CONNECTED // LIVE";
                     statusIndicator.style.color = "var(--green)";
                 } else {
-                    grid.innerHTML = "<div style='color:var(--orange)'>No assets found in database.</div>";
+                    grid.innerHTML = "<div class='empty-state'>NO ASSETS DETECTED IN DATABASE. AWAITING INGESTION.</div>";
+                    statusIndicator.innerText = "SYSTEM CONNECTED // ZERO ASSETS";
+                    statusIndicator.style.color = "var(--orange)";
                 }
             } catch (err) {
                 console.error("Sync Error:", err);
-                statusIndicator.innerText = "Connection Failed // Check Console";
+                statusIndicator.innerText = "CONNECTION FAILED // RLS OR KEY ERROR";
                 statusIndicator.style.color = "red";
+                grid.innerHTML = `<div style='color:red;'>PROTOCOL ERROR: ${err.message}</div>`;
             } finally {
                 isProcessing = false;
             }
         }
 
-        // EVENT-DRIVEN SUBSCRIPTION (Zero Manual Burn)
+        // EVENT-DRIVEN SUBSCRIPTION
         supabase.channel('assets_sync')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, (payload) => {
-                console.log("Database transaction detected. Updating view...");
                 updateDashboard();
             })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log("Realtime link established.");
-                }
-            });
+            .subscribe();
 
         // Initial load execution
         updateDashboard();
