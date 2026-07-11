@@ -1,7 +1,6 @@
 {
   "name": "juggernaut-terminal",
   "version": "1.0.0",
-  "description": "Juggernaut Settlement Ingestion System",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
