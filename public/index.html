@@ -2,100 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>JUGGERNAUT // TACTICAL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juggernaut Terminal</title>
     <style>
-        :root { --green: #00ff41; --blue: #00d4ff; --orange: #ff9d00; --bg: #050a0f; --card-bg: #0a141e; }
-        body { background: var(--bg); color: #fff; font-family: 'Courier New', monospace; padding: 20px; margin: 0; }
-        .header-panel { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--green); padding-bottom: 15px; margin-bottom: 20px; text-transform: uppercase; }
-        .header-panel h2 { color: var(--green); margin: 0; }
-        .sys-status { font-size: 0.8rem; color: var(--blue); font-weight: bold; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
-        .card { border: 1px solid #1a334d; background: var(--card-bg); padding: 20px; border-left: 4px solid var(--green); transition: 0.3s; }
-        .card:hover { border-left-color: var(--blue); transform: translateY(-3px); }
-        .status-pill { border: 1px solid var(--orange); color: var(--orange); padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; display: inline-block; font-weight: bold; }
-        .row { display: flex; justify-content: space-between; margin-top: 10px; font-size: 0.9rem; }
-        .label { color: var(--blue); }
-        .arb-val { color: var(--green); font-size: 1.1rem; font-weight: bold; }
-        .empty-state { color: var(--orange); padding: 20px; border: 1px dashed var(--orange); font-weight: bold; }
+        body { background: #080f1d; color: #ffffff; font-family: 'Courier New', monospace; padding: 20px; }
+        .card { border: 1px solid #1f2937; padding: 15px; margin-bottom: 10px; background: #111827; border-radius: 4px; }
+        h1 { color: #3b82f6; }
+        .error { color: #ef4444; }
     </style>
 </head>
 <body>
-    <div class="header-panel">
-        <h2>JUGGERNAUT // ASSET_MONITOR_ACTIVE</h2>
-        <div class="sys-status" id="connection-status">ESTABLISHING LINK...</div>
-    </div>
-    
-    <div id="deals-grid" class="grid"></div>
+    <h1>Juggernaut Terminal</h1>
+    <div id="status">Connecting...</div>
+    <div id="grid"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        const SUPABASE_URL = "https://midneoocykeoquxkjk.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pZG5lb29jeWtlb3F1eGtqa3JqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTg1NjI4MjMsImV4cCI6MjAzNDEzODQyM30.TWbR5nk-WKjz2No5Txb_Twe7Fg5SIY70u_P8SQIT7fs";
-        
+        // REPLACE WITH YOUR ACTUAL KEYS
+        const SUPABASE_URL = "https://midneoocykeoquxkjkrj.supabase.co";
+        const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let isProcessing = false;
-        
-        const statusIndicator = document.getElementById('connection-status');
-        const grid = document.getElementById('deals-grid');
 
-        async function updateDashboard() {
-            if (isProcessing) return;
-            isProcessing = true;
-
+        async function initTerminal() {
+            const grid = document.getElementById('grid');
+            const status = document.getElementById('status');
+            
             try {
-                const { data: assets, error } = await supabase
-                    .from('assets')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
+                const { data, error } = await supabase.from('assets').select('*');
                 if (error) throw error;
-
-                if (assets && assets.length > 0) {
-                    grid.innerHTML = assets.map(a => {
-                        const cost = Number(a.cost_basis) || 0;
-                        const arv = Number(a.arv) || 0;
-                        const arb = arv - cost;
-                        
-                        return `
-                            <div class="card">
-                                <h3 style="margin-top:0; color:var(--green)">${a.address || 'UNKNOWN ASSET'}</h3>
-                                <div style="margin-bottom:15px;"><span class="status-pill">${a.status || 'NO STATUS'}</span></div>
-                                <div class="row"><span class="label">COST BASIS:</span> <span>$${cost.toLocaleString()}</span></div>
-                                <div class="row"><span class="label">ARV:</span> <span>$${arv.toLocaleString()}</span></div>
-                                <div class="row" style="border-top:1px solid #222; margin-top:10px; padding-top:10px;">
-                                    <span class="label">ARBITRAGE:</span> 
-                                    <span class="arb-val">$${arb.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                    
-                    statusIndicator.innerText = "SYSTEM CONNECTED // LIVE";
-                    statusIndicator.style.color = "var(--green)";
-                } else {
-                    grid.innerHTML = "<div class='empty-state'>NO ASSETS DETECTED IN DATABASE. AWAITING INGESTION.</div>";
-                    statusIndicator.innerText = "SYSTEM CONNECTED // ZERO ASSETS";
-                    statusIndicator.style.color = "var(--orange)";
-                }
+                
+                status.innerText = "Connection Established.";
+                grid.innerHTML = data.length > 0 ? data.map(asset => `
+                    <div class="card">
+                        <h3>${asset.address || 'Unnamed Asset'}</h3>
+                        <p>Basis: $${Number(asset.cost_basis || 0).toLocaleString()}</p>
+                        <p>ARV: $${Number(asset.arv || 0).toLocaleString()}</p>
+                        <p>Status: ${asset.status || 'Active'}</p>
+                    </div>
+                `).join('') : '<p>No assets found.</p>';
             } catch (err) {
-                console.error("Sync Error:", err);
-                statusIndicator.innerText = "CONNECTION FAILED // RLS OR KEY ERROR";
-                statusIndicator.style.color = "red";
-                grid.innerHTML = `<div style='color:red;'>PROTOCOL ERROR: ${err.message}</div>`;
-            } finally {
-                isProcessing = false;
+                status.innerHTML = `<span class="error">Connection Failed: ${err.message}</span>`;
             }
         }
 
-        // EVENT-DRIVEN SUBSCRIPTION
-        supabase.channel('assets_sync')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, (payload) => {
-                updateDashboard();
-            })
-            .subscribe();
-
-        // Initial load execution
-        updateDashboard();
+        initTerminal();
     </script>
 </body>
 </html>
