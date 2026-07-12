@@ -1,1 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Juggernaut Terminal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="background:#080f1d; color:#fff; font-family:monospace; padding:20px;">
+    <h1>Juggernaut Terminal</h1>
+    <div id="status">Connecting...</div>
+    <div id="grid"></div>
 
+    <script>
+    (function() {
+        const URL = "https://midneoocykeoquxkjkrj.supabase.co";
+        const KEY = "YOUR_ANON_KEY_HERE";
+        const dbClient = supabase.createClient(URL, KEY);
+
+        async function loadData() {
+            try {
+                // This select('*') grabs everything. No filters, no escrow constraints.
+                const { data, error } = await dbClient.from('assets').select('*');
+                
+                if (error) throw error;
+                
+                document.getElementById('status').innerText = "System Operational.";
+                document.getElementById('grid').innerHTML = data.map(item => `
+                    <div style="border:1px solid #333; padding:10px; margin-bottom:10px;">
+                        ${JSON.stringify(item)}
+                    </div>
+                `).join('');
+            } catch (e) {
+                document.getElementById('status').innerText = "Error: " + e.message;
+            }
+        }
+        loadData();
+    })();
+    </script>
+</body>
+</html>
