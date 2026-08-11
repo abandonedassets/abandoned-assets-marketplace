@@ -53,17 +53,15 @@ function InstitutionalDataRoomComponent() {
     );
   };
 
-  // Client-side CSV export (no fetch, no backend dependency)
+  // Client-side CSV export (no fetch, no backend dependency) — now exports live dealTape
   const handleExportCSV = () => {
-    const headers = ["Commit Hash", "Timestamp", "Author", "Hours", "Hourly Rate", "Capitalized Value", "Module Description"];
-    const sampleRows = [
-      ["c8f1a23", "2026-08-10 18:30:00", "Lead Architect", "2.5", "$150.00", "$375.00", "Core ESCROW Deal Tape Pipeline"],
-      ["e5a207e", "2026-08-10 15:12:00", "Senior Engineer", "4.0", "$150.00", "$600.00", "GAAP ASC 350-40 Balance Sheet Engine"],
-      ["3c8122c", "2026-08-09 21:05:00", "DevOps Lead", "3.0", "$150.00", "$450.00", "HMAC-SHA256 Cryptographic Hash Verification"]
-    ];
+    const headers = ["Parcel ID", "Asset Class", "Valuation", "Audit Status", "Title Hash"];
+
+    // Map live dealTape into rows: [id, class, val, status, hash]
+    const sampleRows = dealTape.map((item) => [item.id, item.class, item.val, item.status, item.hash]);
 
     // Escape double-quotes by doubling them (CSV RFC)
-    const escapeCell = (val: string) => `"${val.replace(/"/g, '""')}"`;
+    const escapeCell = (val: string) => `"${String(val).replace(/"/g, '""')}"`;
 
     const csvString = [
       headers.join(","),
