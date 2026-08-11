@@ -2,12 +2,10 @@
   "type": "module",
   "name": "juggernaut-terminal",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": ".output/server/index.mjs",
   "scripts": {
     "build": "vite build",
-    "start": "node server.js"
+    "start": "node .output/server/index.mjs"
   },
-  "dependencies": {
-    "express": "^4.19.2"
-  }
+  "dependencies": {}
 }
