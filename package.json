@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx nitropack build",
+    "build": "mkdir -p dist/client && touch dist/client/index.html && npx nitropack build",
     "render-build": "RENDER=true npm run build",
     "start": "node .output/server/index.mjs"
   },
