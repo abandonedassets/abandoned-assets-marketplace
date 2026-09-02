@@ -2,7 +2,7 @@ services:
   - type: web
     name: abandoned-assets-marketplace
     env: node
-    buildCommand: RENDER=true npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: node .output/server/index.mjs
     healthCheckPath: /api/public/health
     envVars:
