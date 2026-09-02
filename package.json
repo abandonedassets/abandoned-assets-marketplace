@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npx nitropack build",
     "render-build": "RENDER=true npm run build",
     "start": "node .output/server/index.mjs"
   },
