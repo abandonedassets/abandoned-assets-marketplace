@@ -2,11 +2,39 @@ services:
   - type: web
     name: abandoned-assets-marketplace
     env: node
-    buildCommand: npm install --include=dev && npm run build
+    buildCommand: npm run build
     startCommand: node .output/server/index.mjs
     healthCheckPath: /api/public/health
     envVars:
-      - key: NITRO_PRESET
-        value: node-server
       - key: NITRO_HOST
         value: 0.0.0.0
+      - key: NITRO_PRESET
+        value: node-server
+      - key: NODE_VERSION
+        value: 20.x
+      - key: NODE_ENV
+        value: production
+      - key: STRIPE_SECRET_KEY
+        fromDatabase:
+          name: abandoned_assets_db
+          property: STRIPE_SECRET_KEY
+      - key: STRIPE_WEBHOOK_SECRET
+        fromDatabase:
+          name: abandoned_assets_db
+          property: STRIPE_WEBHOOK_SECRET
+      - key: SUPABASE_URL
+        fromDatabase:
+          name: abandoned_assets_db
+          property: SUPABASE_URL
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        fromDatabase:
+          name: abandoned_assets_db
+          property: SUPABASE_SERVICE_ROLE_KEY
+      - key: VITE_SUPABASE_URL
+        fromDatabase:
+          name: abandoned_assets_db
+          property: VITE_SUPABASE_URL
+      - key: VITE_SUPABASE_ANON_KEY
+        fromDatabase:
+          name: abandoned_assets_db
+          property: VITE_SUPABASE_ANON_KEY
