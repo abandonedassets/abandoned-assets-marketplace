@@ -1,25 +1,28 @@
 import { defineNitroConfig } from 'nitropack/config';
 
 export default defineNitroConfig({
-  // 1. FORCE THE PATH MAPPING TO BYPASS ROUTING COLLISIONS
-  routeRules: {
+  // 1. FORCE THE PATH MAPPING TO BYPASS STATIC FILE SERVING
+  routes: {
     '/api/public/health': { 
       cors: true,
-      headers: { 'X-Engine': 'NITRO_APEX_M2M_CORE' }
+      headers: { 'Content-Type': 'application/json' }
     },
     '/api/public/hooks/stripe-settlement': { 
       cors: true,
-      methods: ['POST']
+      headers: { 'Content-Type': 'application/json' }
     }
   },
 
-  // 2. HARD PORT AND HOST BINDING NATIVE TO THE COMPILATION
+  // 2. DISABLE STATIC CLIENT COMPILATION LOOKUPS
+  serveStatic: false,
+
+  // 3. SECURE CONTAINER RUNTIME SETTINGS
   devServer: {
     host: '0.0.0.0',
     port: 10000
   },
 
-  // 3. ENSURE SERVER VARIABLES ROUTE NATIVELY WITHOUT STRUCTURAL DROPS
+  // 4. RUNTIME CONFIG FOR SECRETS
   runtimeConfig: {
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -27,8 +30,7 @@ export default defineNitroConfig({
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET
   },
 
-  // 4. PRODUCTION HARDENING
+  // 5. PRODUCTION HARDENING
   preset: 'node-server',
-  serveStatic: true,
   noAnalyze: true,
 });
