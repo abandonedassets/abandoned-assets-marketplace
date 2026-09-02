@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: abandoned-assets-marketplace
+    env: node
+    buildCommand: RENDER=true npm install && npm run build
+    startCommand: node .output/server/index.mjs
+    healthCheckPath: /api/public/health
+    envVars:
+      - key: NITRO_PRESET
+        value: node-server
+      - key: NITRO_HOST
+        value: 0.0.0.0
