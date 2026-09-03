@@ -1,0 +1,2 @@
+REVOKE SELECT (stripe_session_url, stripe_session_id, stripe_session_expires_at) ON public.closing_pipeline_items FROM authenticated;
+REVOKE SELECT (stripe_session_url, stripe_session_id, stripe_session_expires_at) ON public.closing_pipeline_items FROM anon;

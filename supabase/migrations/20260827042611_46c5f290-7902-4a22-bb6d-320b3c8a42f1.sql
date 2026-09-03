@@ -1,0 +1,1 @@
+ALTER TABLE public.buyer_buy_boxes ADD COLUMN IF NOT EXISTS partner_tax_id text;

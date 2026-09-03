@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "authenticated read system_flags" ON public.system_flags;
+CREATE POLICY "admins read system_flags" ON public.system_flags FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));

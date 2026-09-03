@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.retail_stores_within_radius(double precision, double precision, double precision) FROM anon, authenticated, PUBLIC;
+GRANT EXECUTE ON FUNCTION public.retail_stores_within_radius(double precision, double precision, double precision) TO service_role;

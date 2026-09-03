@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.adversarial_audit_cpi() FROM PUBLIC, anon, authenticated;

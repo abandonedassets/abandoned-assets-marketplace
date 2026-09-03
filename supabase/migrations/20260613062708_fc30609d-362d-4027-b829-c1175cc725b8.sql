@@ -1,0 +1,1 @@
+ALTER TABLE public.closing_pipeline_items ALTER COLUMN user_id DROP NOT NULL;

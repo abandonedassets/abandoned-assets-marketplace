@@ -1,166 +1,156 @@
-import { createHmac } from 'crypto';
+// Lean infrastructure underwriting: fast integer/string prefilters first,
+// DSCR math last. No spatial calls in this module.
 
-/**
- * System Compliance Exception Framework
- * Forces immediate loop short-circuiting to prevent downstream 403 authorization failures
- */
-export class CriticalComplianceError extends Error {
-  constructor(message: string) {
-    super(`CRITICAL_COMPLIANCE_FAILURE: ${message}`);
-    this.name = 'CriticalComplianceError';
-    Object.setPrototypeOf(this, CriticalComplianceError.prototype);
-  }
+/** Strip padding/dashes from raw assessor ZIP fields -> { zip5, plus4 }. */
+export function sanitizeZip(raw: unknown): { zip5: string | null; plus4: string | null } {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  if (digits.length >= 9) return { zip5: digits.slice(0, 5), plus4: digits.slice(5, 9) };
+  if (digits.length >= 5) return { zip5: digits.slice(0, 5), plus4: null };
+  if (digits.length > 0) return { zip5: digits.padStart(5, "0"), plus4: null };
+  return { zip5: null, plus4: null };
 }
 
-export interface AssetRowData {
-  apn: string;
-  contract_type_string: string;
-  execution_timestamp: string;
-  calculated_fee: string;
+/** Stage 2 raster-style mask: cheap terrain reject before any geometry math. */
+export function passesTerrainMask(input: {
+  slope_pct?: number | null;
+  wetland_pct?: number | null;
+}): boolean {
+  const slope = Number(input.slope_pct ?? 0);
+  const wet = Number(input.wetland_pct ?? 0);
+  if (isFinite(slope) && slope > 3.0) return false;
+  if (isFinite(wet) && wet > 10) return false;
+  return true;
+}
+
+export type SpatialData = {
+  buildable_acreage_net: number;
+  gross_acreage: number;
+  target_acquisition_strike_price: number;
+};
+
+export type UnderwriteResult =
+  | { status: "REJECTED"; reason: string; score?: number }
+  | {
+      status: "APPROVED";
+      metrics: {
+        base_energy_kwh_projected_annual: number;
+        net_operating_income_usd: number;
+        calculated_dscr_target: number;
+        project_readiness_score: number;
+      };
+    };
+
+const DSCR_FLOOR = 1.3;
+const PPA_RATE = 0.06;
+const KWH_PER_ACRE = 200_000;
+const CAPACITY_FACTOR = 0.2;
+
+/** Stage 4 financial loop. Drops anything under the 1.30 institutional floor. */
+export function underwriteInfrastructureAsset(spatial: SpatialData): UnderwriteResult {
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const buildable = Number(spatial.buildable_acreage_net) || 0;
+  const gross = Number(spatial.gross_acreage) || 0;
+  const strike = Number(spatial.target_acquisition_strike_price) || 0;
+
+  const energy = buildable * KWH_PER_ACRE * CAPACITY_FACTOR;
+  const revenue = energy * PPA_RATE;
+  const opex = gross * 100 + buildable * 250;
+  const noi = revenue - opex;
+
+  const debtService = strike * 0.08;
+  if (debtService <= 0) return { status: "REJECTED", reason: "invalid_strike_price" };
+
+  const dscr = noi / debtService;
+  if (dscr < DSCR_FLOOR)
+    return { status: "REJECTED", reason: "dscr_below_institutional_floor", score: round2(dscr) };
+
+  return {
+    status: "APPROVED",
+    metrics: {
+      base_energy_kwh_projected_annual: round2(energy),
+      net_operating_income_usd: round2(noi),
+      calculated_dscr_target: round2(dscr),
+      project_readiness_score: Math.round(Math.min(100, (dscr / 1.5) * 100) * 10) / 10,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tiered M2M underwriting entry point (pure; no crypto, no IO).
+// Order: grid distance -> terrain mask -> metric sanity -> DSCR core.
+// ---------------------------------------------------------------------------
+
+export interface IngestionPayload {
+  apn_raw: string;
+  fips_code?: string | null;
+  owner_zip_raw?: string | null;
   gross_acreage: number;
   buildable_acreage_net: number;
   target_acquisition_strike_price: number;
   substation_distance_miles: number;
-  max_slope: number;
-  wetland_pct: number;
-  raw_county_zip: string;
-  fips_code?: string;
-  // Decoupled Real-World Database Columns
-  digital_contract_hash?: string;
-  title_co_routing_code?: string;
-  escrow_opened_at?: string;
-  emd_amount_deposited?: string;
-  escrow_receipt_number?: string;
+  max_slope?: number | null;
+  wetland_pct?: number | null;
+  annual_tax_assessment?: number | null;
 }
 
-/**
- * Programmatic M2M Infrastructure Underwriting and Compliance Engine
- * Tiered Integration Layout: ZIP Corridor -> Terrain -> DSCR Floor -> Real Legal Mapping
- */
-export function processAssetUnderwriting(rawRow: AssetRowData, secretKey: string): any {
-  try {
-    // TIER 1: Spatial Proximity Pre-Flight Optimization
-    if (rawRow.substation_distance_miles > 1.0) {
-      return { status: 'REJECTED', reason: 'GRID_DISTANCE_EXCEEDS_1_MILE_RADIUS' };
-    }
+/** Bad-data guard: county feeds report $0 tax on exempt/defaulted parcels. */
+export const MIN_ANNUAL_TAX_USD = 500;
 
-    // TIER 2: Environmental & Topography Masking 
-    if (rawRow.max_slope > 3.0 || rawRow.wetland_pct >= 1.0) {
-      return { status: 'REJECTED', reason: 'TERRAIN_UNBUILDABLE_SLOPE_OR_WETLAND' };
-    }
-
-    if (rawRow.buildable_acreage_net <= 0 || rawRow.target_acquisition_strike_price <= 0) {
-      return { status: 'REJECTED', reason: 'INVALID_METRICS_OR_ZERO_NET_ACREAGE' };
-    }
-
-    // TIER 3: Core Financial Power Modeling & DSCR Evaluation
-    const annualKwh = rawRow.buildable_acreage_net * 200000 * 0.20; // 20% Capacity Factor constant
-    const projectedRevenue = annualKwh * 0.06; // $0.06/kWh PPA rate constant
-
-    // Enforce the $500 baseline property tax floor protection
-    const calculatedTax = rawRow.gross_acreage * 100.00;
-    const annualTax = Math.max(calculatedTax, 500.00); 
-    
-    const maintenance = rawRow.buildable_acreage_net * 250.00;
-    const totalOpex = annualTax + maintenance;
-
-    const netOperatingIncome = projectedRevenue - totalOpex;
-    const annualDebtService = rawRow.target_acquisition_strike_price * 0.08; // 8% Constant Amortization Equivalent
-
-    if (annualDebtService <= 0) {
-      return { status: 'REJECTED', reason: 'DEBT_SERVICE_DIVIDE_BY_ZERO' };
-    }
-
-    const calculatedDscr = netOperatingIncome / annualDebtService;
-
-    // Enforce the 1.30 Institutional Floor Rule
-    if (calculatedDscr < 1.30) {
-      return { status: 'REJECTED', reason: 'DSCR_BELOW_INSTITUTIONAL_1.30_FLOOR' };
-    }
-
-    // Parse unpadded 9-digit ZIP code anomaly via robust inline regex processing
-    const rawZip = rawRow.raw_county_zip ? rawRow.raw_county_zip.trim() : "";
-    const zipMatch = rawZip.match(/^(\d{5})(\d{4})$/);
-    const parsedZipObj = zipMatch 
-      ? { 
-          raw_string: rawRow.raw_county_zip, 
-          postal_code: zipMatch[1], 
-          plus_four: zipMatch[2], 
-          regex_match_type: "unpadded_9_digit" 
-        }
-      : { 
-          raw_string: rawRow.raw_county_zip, 
-          postal_code: rawZip.slice(0, 5), 
-          plus_four: "0000", 
-          regex_match_type: "fallback" 
-        };
-
-    // TIER 4: Strict Fail-Fast Guard Verification (The Core System Fix)
-    if (!rawRow.escrow_receipt_number || !rawRow.digital_contract_hash || !rawRow.title_co_routing_code) {
-      throw new CriticalComplianceError(
-        `Parcel APN ${rawRow.apn} missing valid physical escrow IDs or signed contract hashes.`
-      );
-    }
-
-    // TIER 5: Explicit Schema-3.5.0 Clean Column Assembly
-    const finalizedPayload = {
-      schema_version: "3.5.0",
-      transaction_metadata: {
-        generation_timestamp: new Date().toISOString(),
-        underwriting_status: "VERIFIED_REAL_WORLD"
-      },
-      asset_identifiers: {
-        entity_type: "LAND",
-        apn_raw: rawRow.apn,
-        fips_code: rawRow.fips_code || "",
-        owner_zip_parsed: parsedZipObj
-      },
-      grid_proximity_analysis: {
-        st_dwithin_distance_miles: parseFloat(rawRow.substation_distance_miles.toFixed(2))
-      },
-      spatial_constraints: {
-        gross_acreage: rawRow.gross_acreage,
-        buildable_acreage_net: rawRow.buildable_acreage_net,
-        max_slope: rawRow.max_slope
-      },
-      financial_underwriting_metrics: {
-        base_energy_kwh_projected_annual: Math.round(annualKwh),
-        net_operating_income_usd: Math.round(netOperatingIncome),
-        calculated_dscr_target: parseFloat(calculatedDscr.toFixed(2)),
-        dscr_floor_validated: true
-      },
-      equitable_interest_manifest: {
-        contract_vehicle_type: rawRow.contract_type_string,
-        contract_status: "EXECUTED_ACTIVE",
-        effective_date: rawRow.execution_timestamp,
-        assignment_fee_usd: parseFloat(rawRow.calculated_fee),
-        docu_anchor_hash: rawRow.digital_contract_hash // Authentic audit trail token
-      },
-      settlement_and_escrow_anchor: {
-        escrow_file_status: "OPENED_VERIFIED",
-        title_company_routing_id: rawRow.title_co_routing_code, // Explicitly decoupled
-        escrow_account_opened_timestamp: rawRow.escrow_opened_at,
-        earnest_money_deposit_status: "HELD_IN_ESCROW",
-        emd_amount_usd: parseFloat(rawRow.emd_amount_deposited || "0"), // Explicitly decoupled
-        physical_escrow_id: rawRow.escrow_receipt_number // Explicitly decoupled
-      }
+export type TieredUnderwriteResult =
+  | { status: "REJECTED"; reason: string; dscr?: number }
+  | {
+      status: "APPROVED";
+      metrics: {
+        base_energy_kwh_projected_annual: number;
+        net_operating_income_usd: number;
+        annual_tax_assessment_usd: number;
+        calculated_dscr_target: number;
+      };
+      zip: { raw_string: string; postal_code: string | null; plus_four: string | null; regex_match_type: string };
     };
 
-    // TIER 6: Cryptographic Signature Authorization
-    const serialized = JSON.stringify(finalizedPayload);
-    const signature = createHmac('sha256', secretKey).update(serialized).digest('hex');
+export function processAssetUnderwriting(asset: IngestionPayload): TieredUnderwriteResult {
+  // Tier 1 — grid proximity hard stop
+  if (Number(asset.substation_distance_miles) > 1.0)
+    return { status: "REJECTED", reason: "GRID_DISTANCE_EXCEEDS_1_MILE_RADIUS" };
 
-    return {
-      status: 'APPROVED',
-      payload: finalizedPayload,
-      signature: signature
-    };
+  // Tier 2 — terrain / environmental mask
+  if (!passesTerrainMask({ slope_pct: asset.max_slope, wetland_pct: asset.wetland_pct }))
+    return { status: "REJECTED", reason: "TERRAIN_UNBUILDABLE_SLOPE_OR_WETLAND" };
 
-  } catch (error) {
-    if (error instanceof CriticalComplianceError) {
-      // Gracefully catch compliance errors and flag them as REJECTED to preserve background processing loop stability
-      return { status: 'REJECTED', reason: error.message };
-    }
-    return { status: 'REJECTED', reason: `UNEXPECTED_SYSTEM_FAILURE: ${(error as Error).message}` };
-  }
+  const buildable = Number(asset.buildable_acreage_net) || 0;
+  const gross = Number(asset.gross_acreage) || 0;
+  const strike = Number(asset.target_acquisition_strike_price) || 0;
+  if (buildable <= 0 || strike <= 0)
+    return { status: "REJECTED", reason: "INVALID_METRICS_OR_ZERO_NET_ACREAGE" };
+
+  // Tier 3 — financial core
+  const energy = buildable * KWH_PER_ACRE * CAPACITY_FACTOR;
+  const revenue = energy * PPA_RATE;
+  const tax = Math.max(Number(asset.annual_tax_assessment ?? 0) || 0, gross * 100, MIN_ANNUAL_TAX_USD);
+  const noi = revenue - (tax + buildable * 250);
+  const debtService = strike * 0.08;
+  if (debtService <= 0) return { status: "REJECTED", reason: "DEBT_SERVICE_DIVIDE_BY_ZERO" };
+
+  const dscr = Math.round((noi / debtService) * 100) / 100;
+  if (dscr < DSCR_FLOOR)
+    return { status: "REJECTED", reason: "DSCR_BELOW_INSTITUTIONAL_1.30_FLOOR", dscr };
+
+  const z = sanitizeZip(asset.owner_zip_raw);
+  const rawZip = String(asset.owner_zip_raw ?? "");
+  return {
+    status: "APPROVED",
+    metrics: {
+      base_energy_kwh_projected_annual: Math.round(energy),
+      net_operating_income_usd: Math.round(noi),
+      annual_tax_assessment_usd: Math.round(tax),
+      calculated_dscr_target: dscr,
+    },
+    zip: {
+      raw_string: rawZip,
+      postal_code: z.zip5,
+      plus_four: z.plus4,
+      regex_match_type: z.plus4 ? "unpadded_9_digit" : z.zip5 ? "zip5" : "unparsed",
+    },
+  };
 }

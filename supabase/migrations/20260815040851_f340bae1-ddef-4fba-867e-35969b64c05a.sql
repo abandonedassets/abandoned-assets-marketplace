@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.trg_autonomous_dispatch() FROM PUBLIC, anon, authenticated;

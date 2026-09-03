@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.cpi_require_live_stripe_clearance() FROM PUBLIC, anon, authenticated;

@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.handle_autonomous_settlement_alert() FROM anon, authenticated, public;

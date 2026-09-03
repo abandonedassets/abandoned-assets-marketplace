@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.trg_instant_deal_match() FROM PUBLIC, anon, authenticated;

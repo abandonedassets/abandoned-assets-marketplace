@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.cpi_scout_router() FROM PUBLIC, anon, authenticated;

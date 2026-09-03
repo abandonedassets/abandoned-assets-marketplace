@@ -1,0 +1,1 @@
+INSERT INTO public.system_flags (key, bool_value, updated_at) VALUES ('auto_settle_enabled', true, now()) ON CONFLICT (key) DO UPDATE SET bool_value = true, updated_at = now();

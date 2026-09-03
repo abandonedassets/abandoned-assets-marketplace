@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.deprecate_stale_buy_boxes() FROM PUBLIC, anon, authenticated;

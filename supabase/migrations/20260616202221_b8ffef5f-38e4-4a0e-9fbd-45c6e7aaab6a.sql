@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.match_orange_squares() FROM PUBLIC, anon, authenticated;

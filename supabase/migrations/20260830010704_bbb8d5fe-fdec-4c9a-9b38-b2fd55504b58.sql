@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.preflight_validate_lead(uuid) FROM anon, authenticated
