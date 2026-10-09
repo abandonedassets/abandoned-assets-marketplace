@@ -14,7 +14,7 @@ services:
     rootDir: .
     plan: starter
     buildCommand: RENDER=true npm install && npm run build
-    startCommand: node dist/server/index.mjs
+    startCommand: node .output/server/index.mjs
     healthCheckPath: /api/public/health
     autoDeploy: true
     envVars:
