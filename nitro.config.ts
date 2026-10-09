@@ -10,6 +10,10 @@ export default defineNitroConfig({
     '/api/public/hooks/stripe-settlement': { 
       cors: true,
       headers: { 'Content-Type': 'application/json' }
+    },
+    '/api/public/hooks/mercury-webhook': {
+      cors: true,
+      headers: { 'Content-Type': 'application/json' }
     }
   },
 
