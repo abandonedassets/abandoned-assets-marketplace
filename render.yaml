@@ -48,3 +48,5 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      - key: B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64
+        sync: false

@@ -50,7 +50,13 @@ export function AdminNav() {
         Ledger Tape / BTR
       </Link>
       <Link
-
+        to="/admin/b2b-intake"
+        className="hover:text-foreground"
+        activeProps={{ className: "text-foreground" }}
+      >
+        B2B Debt Intake
+      </Link>
+      <Link
         to="/admin/system-ledger"
         className="hover:text-foreground"
         activeProps={{ className: "text-foreground" }}

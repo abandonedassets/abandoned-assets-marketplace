@@ -1,0 +1,59 @@
+name: B2B intake checks
+
+on:
+  pull_request:
+    branches: [production]
+    paths:
+      - "src/routes/api/private/b2b-intake.ts"
+      - "src/routes/_authenticated/admin.b2b-intake.tsx"
+      - "src/components/AdminNav.tsx"
+      - "supabase/config.toml"
+      - "render.yaml"
+      - "docs/b2b-intake-bridge-deployment.md"
+      - "supabase/functions/asset-nav-b2b-debt-intake-v1/**"
+      - ".github/workflows/b2b-intake-checks.yml"
+
+concurrency:
+  group: b2b-intake-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Generate TanStack route tree
+        run: bunx vite build --mode development
+      - name: Check source formatting
+        run: bunx prettier --check src/routes/api/private/b2b-intake.ts src/routes/_authenticated/admin.b2b-intake.tsx src/components/AdminNav.tsx
+      - name: Type-check application
+        run: bunx tsc --noEmit
+      - name: Lint intake files
+        run: bunx eslint src/routes/api/private/b2b-intake.ts src/routes/_authenticated/admin.b2b-intake.tsx src/components/AdminNav.tsx
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check intake Edge Function
+        run: deno check --no-lock supabase/functions/asset-nav-b2b-debt-intake-v1/index.ts
+      - name: Smoke-test live bridge rejects unsigned requests
+        run: |
+          status="$(curl --silent --show-error --output /tmp/b2b-bridge-response.json --write-out '%{http_code}' \
+            --request POST 'https://midneoocykeoquxkjkrg.supabase.co/functions/v1/asset-nav-b2b-debt-intake-v1' \
+            --header 'apikey: sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd' \
+            --header 'Authorization: Bearer b2b-bridge-v1' \
+            --header 'Content-Type: multipart/form-data; boundary=smoke' \
+            --data-binary 'x')"
+          test "$status" = "401"
+          grep -q '"error":"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"' /tmp/b2b-bridge-response.json
