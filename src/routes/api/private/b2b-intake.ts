@@ -41,9 +41,8 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
         }
         const token = auth.slice(7);
         const appUrl = process.env.SUPABASE_URL;
-        const appKey = process.env.SUPABASE_PUBLISHABLE_KEY;
-        const bridgeKey = process.env.B2B_INTAKE_SERVICE_ROLE_KEY;
-        if (!appUrl || !appKey || !bridgeKey) {
+        const appKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        if (!appUrl || !appKey) {
           return Response.json({ error: "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE" }, { status: 503, headers: { "Cache-Control": "no-store" } });
         }
         const contentType = request.headers.get("content-type") ?? "";
@@ -87,8 +86,8 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
           const upstream = await fetch(TARGET, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${bridgeKey}`,
-              apikey: bridgeKey,
+              Authorization: `Bearer ${token}`,
+              apikey: appKey,
               "content-type": contentType,
               "content-length": String(rawBody.byteLength),
             },
