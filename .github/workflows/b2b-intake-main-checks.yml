@@ -2,13 +2,16 @@ name: B2B intake main-runtime checks
 
 on:
   push:
-    branches: ["fix/b2b-intake-*"]
+    branches: ["fix/**"]
     paths:
       - "server/api/private/b2b-intake.post.ts"
       - "server/api/public/b2b-intake-page.get.ts"
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
       - "nitro.config.ts"
+      - "disabled-server-routes/**"
+      - "server/api/public/hooks/mercury-webhook.post.ts"
+      - "server/api/public/hooks/stripe-settlement.post.ts"
       - ".github/workflows/b2b-intake-main-checks.yml"
   pull_request:
     branches: [main]
@@ -40,3 +43,36 @@ jobs:
         run: npm ci
       - name: Build current Render/Nitro application
         run: npm run build
+      - name: Verify unreviewed webhook handlers are not bundled
+        run: |
+          test ! -f .output/server/chunks/routes/api/public/hooks/stripe-settlement.post.mjs
+          test ! -f .output/server/chunks/routes/api/public/hooks/mercury-webhook.post.mjs
+      - name: Smoke-test explicitly registered Nitro routes locally
+        run: |
+          SUPABASE_URL='https://example.supabase.co' \
+          SUPABASE_SERVICE_ROLE_KEY='ci-dummy-key' \
+          B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64='ZHVtbXk=' \
+          PORT=3000 node .output/server/index.mjs > /tmp/nitro.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          status="000"
+          for attempt in $(seq 1 20); do
+            status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/b2b-page.html --write-out '%{http_code}' 'http://127.0.0.1:3000/api/public/b2b-intake-page' || true)"
+            if [ "$status" = "200" ]; then break; fi
+            sleep 1
+          done
+          if [ "$status" != "200" ]; then
+            echo "B2B intake page route returned HTTP $status"
+            cat /tmp/nitro.log
+            exit 1
+          fi
+          health_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/health.json --write-out '%{http_code}' 'http://127.0.0.1:3000/api/public/health')"
+          test "$health_status" = "200"
+          mercury_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/mercury.json --write-out '%{http_code}' 'http://127.0.0.1:3000/api/public/hooks/mercury-webhook')"
+          test "$mercury_status" = "200"
+          grep -q 'mercury-webhook-relay' /tmp/mercury.json
+          grep -q 'B2B Corporate Debt Intake' /tmp/b2b-page.html
+          api_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/b2b-api.json --write-out '%{http_code}' --request POST 'http://127.0.0.1:3000/api/private/b2b-intake' --header 'Content-Type: multipart/form-data; boundary=smoke' --data-binary 'x')"
+          echo "Unauthenticated intake route status: $api_status"
+          test "$api_status" = "401"
+          grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/b2b-api.json

@@ -1,56 +1,32 @@
-import { defineNitroConfig } from 'nitropack/config';
+import { defineNitroConfig } from "nitropack/config";
 
 export default defineNitroConfig({
-  // 1. FORCE THE PATH MAPPING TO BYPASS STATIC FILE SERVING
-  routes: {
-    '/api/public/health': { 
-      cors: true,
-      headers: { 'Content-Type': 'application/json' }
-    },
-    '/api/public/hooks/stripe-settlement': { 
-      cors: true,
-      headers: { 'Content-Type': 'application/json' }
-    },
-    '/api/public/hooks/mercury-webhook': {
-      cors: true,
-      headers: { 'Content-Type': 'application/json' }
-    },
-    '/api/public/b2b-intake-page': {
-      cors: true,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY'
-      }
-    },
-    '/api/private/b2b-intake': {
-      cors: false,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
-      }
-    }
-  },
-
-  // 2. DISABLE STATIC CLIENT COMPILATION LOOKUPS
+  preset: process.env.NITRO_PRESET || "node-server",
   serveStatic: false,
 
-  // 3. SECURE CONTAINER RUNTIME SETTINGS
-  devServer: {
-    host: '0.0.0.0',
-    port: 10000
-  },
+  // File-based routing is disabled by default in this standalone Nitro setup.
+  // Scan the existing server directory, but keep the Stripe settlement handler
+  // excluded until its authorization and live webhook configuration are reviewed.
+  scanDirs: ["./server"],
 
-  // 4. RUNTIME CONFIG FOR SECRETS
-  runtimeConfig: {
-    supabaseUrl: process.env.SUPABASE_URL,
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
-    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET
+  routeRules: {
+    "/api/public/health": {
+      cors: true,
+      headers: { "cache-control": "no-store" },
+    },
+    "/api/public/hooks/mercury-webhook": {
+      cors: true,
+      headers: { "cache-control": "no-store" },
+    },
+    "/api/public/b2b-intake-page": {
+      headers: {
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+      },
+    },
+    "/api/private/b2b-intake": {
+      headers: { "cache-control": "no-store" },
+    },
   },
-
-  // 5. PRODUCTION HARDENING
-  preset: 'node-server',
-  noAnalyze: true,
 });
