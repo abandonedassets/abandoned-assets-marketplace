@@ -5,6 +5,8 @@ function corsHeaders(req:Request):Record<string,string> {
  return {"Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS","Content-Type":"application/json","Vary":"Origin",...(allowedOrigins.has(origin)?{"Access-Control-Allow-Origin":origin}:{})};
 }
 const bucket = "b2b-claim-source-documents";
+const BRIDGE_PUBLIC_KEY_B64 = "3x3jqddrm93OG408SAU1uX4CkYcZ+nDoqLC2nFtzOew=";
+const BRIDGE_MAX_SKEW_MS = 5 * 60 * 1000;
 const allowedTypes = new Set(["application/pdf","image/png","image/jpeg","image/tiff","text/plain","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/msword"]);
 function reply(req:Request,status:number,body:Record<string,unknown>) { return new Response(JSON.stringify(body),{status,headers:corsHeaders(req)}); }
 function hex(bytes:Uint8Array) { return [...bytes].map(b=>b.toString(16).padStart(2,"0")).join(""); }
@@ -24,6 +26,24 @@ function signatureMatches(type:string, bytes:Uint8Array):boolean {
  }
 }
 async function sha256(bytes:Uint8Array) { return hex(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))); }
+function decodeBase64(value:string):Uint8Array { return Uint8Array.from(atob(value),c=>c.charCodeAt(0)); }
+async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolean> {
+ const timestamp=req.headers.get("x-b2b-timestamp")??"";
+ const signature=req.headers.get("x-b2b-signature")??"";
+ const suppliedHash=(req.headers.get("x-b2b-body-sha256")??"").toLowerCase();
+ if(!/^\\d{13}$/.test(timestamp)||!/^[0-9a-f]{64}$/.test(suppliedHash)||!signature) return false;
+ const issuedAt=Number(timestamp);
+ if(!Number.isSafeInteger(issuedAt)||Math.abs(Date.now()-issuedAt)>BRIDGE_MAX_SKEW_MS) return false;
+ const actualHash=await sha256(body);
+ if(actualHash!==suppliedHash) return false;
+ try {
+  const publicKey=await crypto.subtle.importKey("raw",decodeBase64(BRIDGE_PUBLIC_KEY_B64),{name:"Ed25519"},false,["verify"]);
+  const message=new TextEncoder().encode(["v1",timestamp,"POST","asset-nav-b2b-debt-intake-v1",actualHash].join("\\n"));
+  return await crypto.subtle.verify("Ed25519",publicKey,decodeBase64(signature),message);
+ } catch {
+  return false;
+ }
+}
 function canonicalJson(value:unknown):string {
  if(value===null||typeof value!=="object") return JSON.stringify(value);
  if(Array.isArray(value)) return "["+value.map(canonicalJson).join(",")+"]";
@@ -35,14 +55,8 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=="POST") return reply(req, 405,{error:"METHOD_NOT_ALLOWED"});
  const authHeader=req.headers.get("Authorization");
  if(!authHeader?.startsWith("Bearer ")) return reply(req, 401,{error:"AUTHENTICATION_REQUIRED"});
- const url=Deno.env.get("SUPABASE_URL"), anonKey=Deno.env.get("SUPABASE_ANON_KEY"), serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
- if(!url||!anonKey||!serviceKey) return reply(req, 503,{error:"SERVER_CONFIGURATION_INCOMPLETE"});
- const userClient=createClient(url,anonKey,{global:{headers:{Authorization:authHeader}},auth:{persistSession:false,autoRefreshToken:false}});
- const {data:userData,error:userError}=await userClient.auth.getUser();
- if(userError||!userData.user) return reply(req, 401,{error:"INVALID_USER_TOKEN"});
- const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
- const {data:isAdmin,error:roleError}=await admin.rpc("has_role",{_user_id:userData.user.id,_role:"admin"});
- if(roleError||isAdmin!==true) return reply(req, 403,{error:"ADMIN_ROLE_REQUIRED"});
+ const url=Deno.env.get("SUPABASE_URL"), serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+ if(!url||!serviceKey) return reply(req, 503,{error:"SERVER_CONFIGURATION_INCOMPLETE"});
  const ct=(req.headers.get("content-type")??"").toLowerCase();
  if(!ct.includes("multipart/form-data")) return reply(req, 415,{error:"MULTIPART_FORM_DATA_REQUIRED",fields:["document","metadata"]});
  const lengthHeader=req.headers.get("content-length");
@@ -50,8 +64,12 @@ Deno.serve(async(req:Request)=>{
  const requestLength=Number(lengthHeader);
  if(!Number.isSafeInteger(requestLength)||requestLength<1) return reply(req, 400,{error:"INVALID_CONTENT_LENGTH"});
  if(requestLength>16*1024*1024) return reply(req, 413,{error:"REQUEST_SIZE_LIMIT_EXCEEDED"});
+ let rawBody:Uint8Array;
+ try { rawBody=new Uint8Array(await req.arrayBuffer()); } catch { return reply(req, 400,{error:"INVALID_REQUEST_BODY"}); }
+ if(rawBody.byteLength!==requestLength) return reply(req, 400,{error:"CONTENT_LENGTH_MISMATCH"});
+ if(!await verifyBridgeSignature(req,rawBody)) return reply(req, 401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  let form:FormData;
- try { form=await req.formData(); } catch { return reply(req, 400,{error:"INVALID_MULTIPART_FORM"}); }
+ try { form=await new Response(rawBody,{headers:{"content-type":req.headers.get("content-type")??""}}).formData(); } catch { return reply(req, 400,{error:"INVALID_MULTIPART_FORM"}); }
  const file=form.get("document"), metadataText=form.get("metadata");
  if(!(file instanceof File)||typeof metadataText!=="string") return reply(req, 400,{error:"DOCUMENT_AND_METADATA_REQUIRED"});
  if(file.size<=0||file.size>15*1024*1024) return reply(req, 413,{error:"DOCUMENT_SIZE_LIMIT_EXCEEDED"});
