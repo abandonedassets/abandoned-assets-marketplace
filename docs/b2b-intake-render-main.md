@@ -6,7 +6,7 @@ The Render service `abandoned-assets-marketplace` tracks Git branch `main`, whil
 
 ## Runtime flow
 
-1. `/b2b-intake` serves a standalone sign-in and intake page. It exposes only the application Supabase URL and public anon/publishable key.
+1. `/api/public/b2b-intake-page` serves a standalone sign-in and intake page. It exposes only the application Supabase URL and public anon/publishable key.
 2. The browser signs in against the application Supabase project and verifies `has_role(admin)`.
 3. `POST /api/private/b2b-intake` independently validates the app token and admin role, then reads the multipart request with a 16 MiB cap.
 4. The Render route signs the exact body bytes with `B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64` and forwards to the target Edge Function.
