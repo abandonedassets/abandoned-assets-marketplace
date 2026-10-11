@@ -15,6 +15,7 @@ on:
       - "server/api/private/b2b-intake.post.ts"
       - "server/routes/b2b-intake.get.ts"
       - "server/client/src/pages/Home.tsx"
+      - "package-lock.json"
       - ".github/workflows/b2b-intake-main-checks.yml"
 
 permissions:
