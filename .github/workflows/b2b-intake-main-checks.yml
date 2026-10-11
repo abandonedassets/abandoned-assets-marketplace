@@ -55,6 +55,12 @@ jobs:
           deno-version: v2.x
       - name: Test canonical Edge Function signature handling
         run: deno test supabase/functions/asset-nav-b2b-debt-intake-v1/bridge-signature_test.ts
+      - name: Type-check Edge Function and durable status route
+        run: deno check supabase/functions/asset-nav-b2b-debt-intake-v1/index.ts
+      - name: Verify durable recovery migration is included
+        run: |
+          grep -q 'create or replace function public.asset_nav_b2b_claim_status_v1' supabase/migrations/20261011213000_b2b_intake_durable_status_recovery_v1.sql
+          grep -q 'grant execute on function public.asset_nav_b2b_claim_status_v1(text) to service_role' supabase/migrations/20261011213000_b2b_intake_durable_status_recovery_v1.sql
       - name: Report dependency vulnerabilities without changing the lockfile
         continue-on-error: true
         run: |
