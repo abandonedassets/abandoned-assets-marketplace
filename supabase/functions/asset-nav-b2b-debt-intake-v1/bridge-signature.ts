@@ -19,9 +19,15 @@ export function decodeCanonicalEd25519Signature(value: string): Uint8Array | nul
   }
 }
 
+function asArrayBuffer(value: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(value.byteLength);
+  copy.set(value);
+  return copy.buffer;
+}
+
 export async function signatureDigest(value: string): Promise<string | null> {
   const signature = decodeCanonicalEd25519Signature(value);
   if (!signature) return null;
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", signature));
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", asArrayBuffer(signature)));
   return [...digest].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
