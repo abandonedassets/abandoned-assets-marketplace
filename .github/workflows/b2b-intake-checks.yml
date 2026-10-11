@@ -42,11 +42,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Generate TanStack route tree
         run: bunx vite build --mode development
-      - name: Format intake source for patch extraction
-        run: bunx prettier --write src/routes/api/private/b2b-intake.ts src/routes/_authenticated/admin.b2b-intake.tsx src/components/AdminNav.tsx
-      - name: Emit formatted source
-        run: |
-          node -e 'const fs=require("fs"); for (const p of ["src/routes/api/private/b2b-intake.ts","src/routes/_authenticated/admin.b2b-intake.tsx","src/components/AdminNav.tsx"]) console.log("FORMATTED_SOURCE:"+p+":"+fs.readFileSync(p).toString("base64"))'
+      - name: Check source formatting
+        run: bunx prettier --check src/routes/api/private/b2b-intake.ts src/routes/_authenticated/admin.b2b-intake.tsx src/components/AdminNav.tsx
       - name: Type-check application
         run: bunx tsc --noEmit
       - name: Lint intake files
