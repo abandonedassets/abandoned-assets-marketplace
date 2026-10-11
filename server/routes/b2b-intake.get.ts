@@ -150,6 +150,7 @@ async function signIn(event) {
     if (!roleResponse.ok || isAdmin !== true) throw new Error("Administrator access is required.");
     accessToken = data.access_token;
     currentUserId = data.user.id;
+    byId("password").value = "";
     byId("login-panel").hidden = true;
     byId("intake-panel").hidden = false;
     updatePendingUI();
