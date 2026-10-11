@@ -4,11 +4,20 @@ export default defineEventHandler((event) => {
   setHeader(event, "x-content-type-options", "nosniff");
   setHeader(event, "x-frame-options", "DENY");
 
+  const serverUrl = process.env.SUPABASE_URL?.trim() || "";
+  const browserUrl = process.env.VITE_SUPABASE_URL?.trim() || "";
+  let urlMismatch = false;
+  if (serverUrl && browserUrl) {
+    try { urlMismatch = new URL(serverUrl).origin !== new URL(browserUrl).origin; }
+    catch { urlMismatch = true; }
+  }
   const config = JSON.stringify({
-    url: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
+    url: urlMismatch ? "" : (browserUrl || serverUrl),
+    urlMismatch,
     key:
       process.env.VITE_SUPABASE_ANON_KEY ||
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
       process.env.SUPABASE_PUBLISHABLE_KEY ||
       "",
   }).replace(/</g, "\\u003c");
@@ -311,7 +320,7 @@ byId("clear-button").addEventListener("click", () => {
   byId("result").hidden = true;
 });
 if (!CONFIG.url || !CONFIG.key) {
-  showLoginError("Application Supabase configuration is missing. Contact the administrator.");
+  showLoginError(CONFIG.urlMismatch ? "Application Supabase URL settings conflict. Contact the administrator." : "Application Supabase configuration is missing. Contact the administrator.");
   byId("login-button").disabled = true;
 }
 </script>
