@@ -167,10 +167,24 @@ jobs:
           wait_for_status "$RENDER_BASE_URL/api/public/b2b-intake-page" /tmp/live-b2b-page.html "200" "Live intake page"
           page_status="200"
           grep -q 'B2B Corporate Debt Intake' /tmp/live-b2b-page.html
-          if ! grep -Eq 'const CONFIG = \{"url":"https://[^"]+","key":"[^"]+"\};' /tmp/live-b2b-page.html; then
-            echo "Live intake page is missing its application Supabase URL or public key."
-            exit 1
-          fi
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const html = fs.readFileSync('/tmp/live-b2b-page.html', 'utf8');
+          const match = html.match(/const CONFIG = (\{[^;]+\});/);
+          if (!match) {
+            console.error('Live intake page did not expose the expected CONFIG object.');
+            process.exit(1);
+          }
+          const config = JSON.parse(match[1]);
+          const urlPresent = typeof config.url === 'string' && /^https:\/\//.test(config.url);
+          const keyPresent = typeof config.key === 'string' && config.key.length > 0;
+          const mismatch = config.urlMismatch === true;
+          console.log(`Live app config diagnostic: url_present=${urlPresent} key_present=${keyPresent} url_mismatch=${mismatch}`);
+          if (!urlPresent || !keyPresent || mismatch) {
+            console.error('Live intake page lacks a valid app Supabase URL/public key or reports a URL mismatch.');
+            process.exit(1);
+          }
+          NODE
           wait_for_status "$RENDER_BASE_URL/api/public/health" /tmp/live-health.json "200" "Live health"
           health_status="200"
           wait_for_status "$RENDER_BASE_URL/api/public/hooks/mercury-webhook" /tmp/live-mercury.json "200" "Live Mercury GET probe"
