@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { decodeCanonicalEd25519Signature, signatureDigest } from "./bridge-signature.ts";
 const allowedOrigins = new Set(["https://abandonedasset.online","https://www.abandonedasset.online"]);
 function corsHeaders(req:Request):Record<string,string> {
  const origin=req.headers.get("Origin")??"";
@@ -33,6 +34,8 @@ async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolea
  const signature=req.headers.get("x-b2b-signature")??"";
  const suppliedHash=(req.headers.get("x-b2b-body-sha256")??"").toLowerCase();
  if(!/^\d{13}$/.test(timestamp)||!/^[0-9a-f]{64}$/.test(suppliedHash)||!signature) return false;
+ const signatureBytes=decodeCanonicalEd25519Signature(signature);
+ if(!signatureBytes) return false;
  const issuedAt=Number(timestamp);
  if(!Number.isSafeInteger(issuedAt)||Math.abs(Date.now()-issuedAt)>BRIDGE_MAX_SKEW_MS) return false;
  const actualHash=await sha256(body);
@@ -40,7 +43,7 @@ async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolea
  try {
   const publicKey=await crypto.subtle.importKey("raw",asArrayBuffer(decodeBase64(BRIDGE_PUBLIC_KEY_B64)),{name:"Ed25519"},false,["verify"]);
   const message=new TextEncoder().encode(["v1",timestamp,"POST","asset-nav-b2b-debt-intake-v1",actualHash].join("\n"));
-  return await crypto.subtle.verify("Ed25519",publicKey,asArrayBuffer(decodeBase64(signature)),asArrayBuffer(message));
+  return await crypto.subtle.verify("Ed25519",publicKey,asArrayBuffer(signatureBytes),asArrayBuffer(message));
  } catch {
   return false;
  }
@@ -59,7 +62,9 @@ Deno.serve(async(req:Request)=>{
  const url=Deno.env.get("SUPABASE_URL"), serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
  if(!url||!serviceKey) return reply(req, 503,{error:"SERVER_CONFIGURATION_INCOMPLETE"});
  const ct=(req.headers.get("content-type")??"").toLowerCase();
- if(!ct.includes("multipart/form-data")) return reply(req, 415,{error:"MULTIPART_FORM_DATA_REQUIRED",fields:["document","metadata"]});
+ const isMultipart=ct.includes("multipart/form-data");
+ const isJson=ct.startsWith("application/json");
+ if(!isMultipart&&!isJson) return reply(req, 415,{error:"UNSUPPORTED_CONTENT_TYPE",fields:["multipart/form-data","application/json"]});
  const lengthHeader=req.headers.get("content-length");
  if(lengthHeader===null) return reply(req, 411,{error:"CONTENT_LENGTH_REQUIRED"});
  const requestLength=Number(lengthHeader);
@@ -71,10 +76,35 @@ Deno.serve(async(req:Request)=>{
  if(!await verifyBridgeSignature(req,rawBody)) return reply(req, 401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
  const suppliedSignature=req.headers.get("x-b2b-signature")??"";
- const signatureHash=await sha256(new TextEncoder().encode(suppliedSignature));
+ // Preserve replay protection for signatures recorded by the previous version,
+ // which hashed the Base64 text. The legacy digest expires with the existing
+ // ten-minute TTL; the canonical digest is based on decoded signature bytes.
+ const legacySignatureHash=await sha256(new TextEncoder().encode(suppliedSignature));
+ const {data:legacyConsumed,error:legacyReplayError}=await admin.rpc("asset_nav_b2b_consume_signature_v1",{p_signature_sha256:legacySignatureHash});
+ if(legacyReplayError||typeof legacyConsumed!=="boolean") return reply(req,503,{error:"BRIDGE_REPLAY_GUARD_UNAVAILABLE"});
+ if(!legacyConsumed) return reply(req,409,{error:"BRIDGE_REQUEST_REPLAYED"});
+ const signatureHash=await signatureDigest(suppliedSignature);
+ if(!signatureHash) return reply(req,401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  const {data:signatureConsumed,error:replayError}=await admin.rpc("asset_nav_b2b_consume_signature_v1",{p_signature_sha256:signatureHash});
  if(replayError||typeof signatureConsumed!=="boolean") return reply(req,503,{error:"BRIDGE_REPLAY_GUARD_UNAVAILABLE"});
  if(!signatureConsumed) return reply(req,409,{error:"BRIDGE_REQUEST_REPLAYED"});
+ if(isJson) {
+   let operation:Record<string,unknown>;
+   try {
+     const parsed=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(rawBody));
+     if(!parsed||typeof parsed!=="object"||Array.isArray(parsed)) throw new Error();
+     operation=parsed as Record<string,unknown>;
+   } catch {
+     return reply(req,400,{error:"JSON_BODY_MUST_BE_OBJECT"});
+   }
+   if(operation.operation!=="status") return reply(req,400,{error:"UNSUPPORTED_JSON_OPERATION"});
+   if(typeof operation.idempotency_key!=="string"||operation.idempotency_key.trim().length<8||operation.idempotency_key.trim().length>200) {
+     return reply(req,422,{error:"INVALID_IDEMPOTENCY_KEY"});
+   }
+   const {data:statusResult,error:statusError}=await admin.rpc("asset_nav_b2b_claim_status_v1",{p_idempotency_key:operation.idempotency_key.trim()});
+   if(statusError||!statusResult||typeof statusResult!=="object") return reply(req,503,{error:"INTAKE_STATUS_LOOKUP_UNAVAILABLE"});
+   return reply(req,200,statusResult as Record<string,unknown>);
+ }
  let form:FormData;
  try { form=await new Response(asArrayBuffer(rawBody),{headers:{"content-type":req.headers.get("content-type")??""}}).formData(); } catch { return reply(req, 400,{error:"INVALID_MULTIPART_FORM"}); }
  const file=form.get("document"), metadataText=form.get("metadata");

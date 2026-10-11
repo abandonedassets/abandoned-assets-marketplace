@@ -4,11 +4,20 @@ export default defineEventHandler((event) => {
   setHeader(event, "x-content-type-options", "nosniff");
   setHeader(event, "x-frame-options", "DENY");
 
+  const serverUrl = process.env.SUPABASE_URL?.trim() || "";
+  const browserUrl = process.env.VITE_SUPABASE_URL?.trim() || "";
+  let urlMismatch = false;
+  if (serverUrl && browserUrl) {
+    try { urlMismatch = new URL(serverUrl).origin !== new URL(browserUrl).origin; }
+    catch { urlMismatch = true; }
+  }
   const config = JSON.stringify({
-    url: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "",
+    url: urlMismatch ? "" : (browserUrl || serverUrl),
+    urlMismatch,
     key:
       process.env.VITE_SUPABASE_ANON_KEY ||
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
       process.env.SUPABASE_PUBLISHABLE_KEY ||
       "",
   }).replace(/</g, "\\u003c");
@@ -59,9 +68,10 @@ export default defineEventHandler((event) => {
   <section id="intake-panel" hidden>
     <div class="grid">
       <div><strong>Access</strong><p class="success">Administrator verified</p></div>
+      <div><button id="verify-bridge-button" type="button">Verify bridge signing key</button></div>
       <div><button id="signout-button" type="button">Sign out</button></div>
     </div>
-    <div id="pending-notice" class="notice" hidden>A previous submission may have reached the server. Retry with the same metadata and the same original file. The retry key is retained until a confirmed success.</div>
+    <div id="pending-notice" class="notice" hidden>A previous submission may have reached the server. Check its durable status before retrying. If the document is not linked, reattach the same original file and use exactly the same metadata.<p><button id="check-status-button" type="button">Check previous submission status</button></p></div>
     <form id="intake-form">
       <div class="grid">
         <label>Creditor EIN<input id="creditor-ein" required autocomplete="off" placeholder="12-3456789"></label>
@@ -104,30 +114,101 @@ function showStatus(message, kind) {
 }
 function readPendingKey(userId) {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return "";
     const value = JSON.parse(raw);
     return value.userId === userId && typeof value.key === "string" ? value.key : "";
   } catch { return ""; }
 }
 function storePendingKey(userId, key) {
-  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ userId, key })); } catch {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ userId, key })); } catch {}
 }
 function clearPendingKey(userId, key) {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const value = JSON.parse(raw);
       if (value.userId !== userId || value.key !== key) return;
     }
-    sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
   } catch {}
 }
 function updatePendingUI() {
   const pending = readPendingKey(currentUserId);
   byId("pending-notice").hidden = !pending;
+  byId("check-status-button").hidden = !pending;
   byId("clear-button").disabled = Boolean(pending);
-  byId("clear-button").textContent = pending ? "Retry pending submission first" : "Clear form / start new claim";
+  byId("clear-button").textContent = pending ? "Resolve pending submission first" : "Clear form / start new claim";
+}
+async function verifyBridgeKeyPair() {
+  if (!accessToken) {
+    showStatus("Sign in and verify administrator access first.", "error");
+    return;
+  }
+  byId("verify-bridge-button").disabled = true;
+  try {
+    const response = await fetch("/api/private/b2b-intake", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ operation: "key-check" }),
+      cache: "no-store"
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.key_pair_matches !== true || body.external_execution !== false) {
+      throw new Error(body.error || "BRIDGE_KEY_PAIR_CHECK_FAILED");
+    }
+    showStatus("Bridge private key matches the configured Edge Function public key. No upstream request or financial execution was performed.", "success");
+  } catch (error) {
+    showStatus(error instanceof Error ? error.message : "BRIDGE_KEY_PAIR_CHECK_FAILED", "error");
+  } finally {
+    byId("verify-bridge-button").disabled = false;
+  }
+}
+async function checkPendingStatus() {
+  const key = readPendingKey(currentUserId);
+  if (!accessToken || !currentUserId || !key) {
+    showStatus("Sign in and select a pending submission first.", "error");
+    return;
+  }
+  byId("check-status-button").disabled = true;
+  try {
+    const response = await fetch("/api/private/b2b-intake", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ operation: "status", idempotency_key: key }),
+      cache: "no-store"
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || "STATUS_LOOKUP_FAILED");
+    if (body.found !== true) {
+      showStatus("No claim record exists for this retry key yet. The key is retained. Re-submit the same metadata and original file to safely retry.", "error");
+      return;
+    }
+    if (body.document_linked === true &&
+        typeof body.claim_id === "string" &&
+        typeof body.document_object_id === "string" &&
+        typeof body.document_sha256 === "string" &&
+        /^[0-9a-f]{64}$/.test(body.document_sha256) &&
+        body.recognized_amount === 0 &&
+        body.available_amount === 0 &&
+        body.external_execution === false) {
+      clearPendingKey(currentUserId, key);
+      updatePendingUI();
+      successfulSubmission = true;
+      byId("submit-button").disabled = true;
+      byId("claim-id").textContent = body.claim_id;
+      byId("document-object-id").textContent = body.document_object_id;
+      byId("document-hash").textContent = body.document_sha256;
+      byId("result").hidden = false;
+      showStatus("Previous submission is confirmed: claim and document link exist. Recognized and available amounts remain $0.", "success");
+      return;
+    }
+    showStatus("A claim record exists, but its document link is not confirmed. Reattach the exact same original file and submit with the same metadata; do not create a new key.", "error");
+  } catch (error) {
+    showStatus(error instanceof Error ? error.message : "STATUS_LOOKUP_FAILED", "error");
+  } finally {
+    byId("check-status-button").disabled = false;
+  }
 }
 async function signIn(event) {
   event.preventDefault();
@@ -239,6 +320,8 @@ async function submitIntake(event) {
 }
 byId("login-form").addEventListener("submit", signIn);
 byId("intake-form").addEventListener("submit", submitIntake);
+byId("check-status-button").addEventListener("click", checkPendingStatus);
+byId("verify-bridge-button").addEventListener("click", verifyBridgeKeyPair);
 byId("signout-button").addEventListener("click", () => {
   accessToken = "";
   currentUserId = "";
@@ -263,7 +346,7 @@ byId("clear-button").addEventListener("click", () => {
   byId("result").hidden = true;
 });
 if (!CONFIG.url || !CONFIG.key) {
-  showLoginError("Application Supabase configuration is missing. Contact the administrator.");
+  showLoginError(CONFIG.urlMismatch ? "Application Supabase URL settings conflict. Contact the administrator." : "Application Supabase configuration is missing. Contact the administrator.");
   byId("login-button").disabled = true;
 }
 </script>

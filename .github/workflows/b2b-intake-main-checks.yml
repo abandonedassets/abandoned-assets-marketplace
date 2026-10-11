@@ -12,6 +12,7 @@ on:
       - "package-lock.json"
       - "package.json"
       - "nitro.config.ts"
+      - "docs/b2b-intake-recovery-rollout.md"
       - "disabled-server-routes/**"
       - "server/api/public/hooks/mercury-webhook.post.ts"
       - "server/api/public/hooks/stripe-settlement.post.ts"
@@ -20,9 +21,15 @@ on:
     branches: [main]
     paths:
       - "server/api/private/b2b-intake.post.ts"
+      - "supabase/functions/asset-nav-b2b-debt-intake-v1/**"
+      - "supabase/migrations/**"
       - "server/api/public/b2b-intake-page.get.ts"
       - "server/client/src/pages/Home.tsx"
+      - "package.json"
       - "package-lock.json"
+      - "nitro.config.ts"
+      - "docs/b2b-intake-recovery-rollout.md"
+      - "disabled-server-routes/**"
       - ".github/workflows/b2b-intake-main-checks.yml"
 
 permissions:
@@ -44,6 +51,18 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Set up Deno for Edge Function tests
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test canonical Edge Function signature handling
+        run: deno test supabase/functions/asset-nav-b2b-debt-intake-v1/bridge-signature_test.ts
+      - name: Type-check Edge Function and durable status route
+        run: deno check supabase/functions/asset-nav-b2b-debt-intake-v1/index.ts
+      - name: Verify durable recovery migration is included
+        run: |
+          grep -q 'create or replace function public.asset_nav_b2b_claim_status_v1' supabase/migrations/20261011213000_b2b_intake_durable_status_recovery_v1.sql
+          grep -q 'grant execute on function public.asset_nav_b2b_claim_status_v1(text) to service_role' supabase/migrations/20261011213000_b2b_intake_durable_status_recovery_v1.sql
       - name: Report dependency vulnerabilities without changing the lockfile
         continue-on-error: true
         run: |

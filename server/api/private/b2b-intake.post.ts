@@ -4,7 +4,22 @@ const TARGET =
   "https://midneoocykeoquxkjkrg.supabase.co/functions/v1/asset-nav-b2b-debt-intake-v1";
 const TARGET_API_KEY = "sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd";
 const TARGET_FUNCTION_SLUG = "asset-nav-b2b-debt-intake-v1";
+const BRIDGE_PUBLIC_KEY_B64 = "3x3jqddrm93OG408SAU1uX4CkYcZ+nDoqLC2nFtzOew=";
 const MAX_BYTES = 16 * 1024 * 1024;
+
+function resolveAppSupabaseUrl(): string | null {
+  const serverUrl = process.env.SUPABASE_URL?.trim();
+  const browserUrl = process.env.VITE_SUPABASE_URL?.trim();
+  if (serverUrl && browserUrl) {
+    try {
+      const normalize = (value: string) => new URL(value).origin;
+      if (normalize(serverUrl) !== normalize(browserUrl)) return null;
+    } catch {
+      return null;
+    }
+  }
+  return browserUrl || serverUrl || null;
+}
 
 function decodeBase64(value: string): Uint8Array {
   return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
@@ -47,6 +62,29 @@ async function signBridgeBody(body: Uint8Array, privateKeyB64: string) {
   return { digest, timestamp, signature: encodeBase64(signature) };
 }
 
+async function bridgeKeyPairMatches(signed: { digest: string; timestamp: string; signature: string }): Promise<boolean> {
+  try {
+    const publicKey = await crypto.subtle.importKey(
+      "raw",
+      asArrayBuffer(decodeBase64(BRIDGE_PUBLIC_KEY_B64)),
+      { name: "Ed25519" },
+      false,
+      ["verify"],
+    );
+    const message = new TextEncoder().encode(
+      ["v1", signed.timestamp, "POST", TARGET_FUNCTION_SLUG, signed.digest].join("\n"),
+    );
+    return await crypto.subtle.verify(
+      "Ed25519",
+      publicKey,
+      asArrayBuffer(decodeBase64(signed.signature)),
+      asArrayBuffer(message),
+    );
+  } catch {
+    return false;
+  }
+}
+
 function jsonError(event: any, status: number, error: string) {
   setResponseStatus(event, status);
   setHeader(event, "content-type", "application/json; charset=utf-8");
@@ -64,12 +102,12 @@ export default defineEventHandler(async (event) => {
   const match = /^Bearer\s+(.+)$/i.exec(authorization);
   if (!match?.[1]) return jsonError(event, 401, "AUTHENTICATION_REQUIRED");
 
-  const appUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const appUrl = resolveAppSupabaseUrl();
   const appAnonKey =
-    process.env.SUPABASE_ANON_KEY ??
     process.env.VITE_SUPABASE_ANON_KEY ??
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_PUBLISHABLE_KEY;
   const bridgePrivateKey = process.env.B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64;
   if (!appUrl || !appAnonKey || !bridgePrivateKey) {
     return jsonError(event, 503, "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE");
@@ -92,8 +130,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const contentType = getHeader(event, "content-type") ?? "";
-  if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
-    return jsonError(event, 415, "MULTIPART_FORM_DATA_REQUIRED");
+  const normalizedContentType = contentType.toLowerCase();
+  const isMultipart = normalizedContentType.startsWith("multipart/form-data;");
+  const isJson = normalizedContentType.startsWith("application/json");
+  if (!isMultipart && !isJson) {
+    return jsonError(event, 415, "UNSUPPORTED_CONTENT_TYPE");
   }
 
   const lengthHeader = getHeader(event, "content-length");
@@ -133,6 +174,24 @@ export default defineEventHandler(async (event) => {
 
   try {
     const signed = await signBridgeBody(rawBody, bridgePrivateKey);
+    if (!(await bridgeKeyPairMatches(signed))) {
+      return jsonError(event, 503, "B2B_INTAKE_BRIDGE_KEY_PAIR_MISMATCH");
+    }
+    if (isJson) {
+      let operation: unknown;
+      try {
+        operation = JSON.parse(rawBody.toString("utf8"));
+      } catch {
+        return jsonError(event, 400, "JSON_BODY_MUST_BE_OBJECT");
+      }
+      if (operation && typeof operation === "object" && !Array.isArray(operation) &&
+          (operation as Record<string, unknown>).operation === "key-check") {
+        setResponseStatus(event, 200);
+        setHeader(event, "content-type", "application/json; charset=utf-8");
+        setHeader(event, "cache-control", "no-store");
+        return { key_pair_matches: true, external_execution: false };
+      }
+    }
     const upstream = await fetch(TARGET, {
       method: "POST",
       headers: {
