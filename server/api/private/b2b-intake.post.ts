@@ -60,6 +60,10 @@ export default defineEventHandler(async (event) => {
     return jsonError(event, 405, "METHOD_NOT_ALLOWED");
   }
 
+  const authorization = getHeader(event, "authorization") ?? "";
+  const match = /^Bearer\s+(.+)$/i.exec(authorization);
+  if (!match?.[1]) return jsonError(event, 401, "AUTHENTICATION_REQUIRED");
+
   const appUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   const appAnonKey =
     process.env.SUPABASE_ANON_KEY ??
@@ -70,10 +74,6 @@ export default defineEventHandler(async (event) => {
   if (!appUrl || !appAnonKey || !bridgePrivateKey) {
     return jsonError(event, 503, "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE");
   }
-
-  const authorization = getHeader(event, "authorization") ?? "";
-  const match = /^Bearer\s+(.+)$/i.exec(authorization);
-  if (!match?.[1]) return jsonError(event, 401, "AUTHENTICATION_REQUIRED");
 
   const appClient = createClient(appUrl, appAnonKey, {
     global: { headers: { Authorization: `Bearer ${match[1]}` } },
