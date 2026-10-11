@@ -104,10 +104,10 @@ export default defineEventHandler(async (event) => {
 
   const appUrl = resolveAppSupabaseUrl();
   const appAnonKey =
-    process.env.SUPABASE_ANON_KEY ??
     process.env.VITE_SUPABASE_ANON_KEY ??
-    process.env.SUPABASE_PUBLISHABLE_KEY ??
-    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_PUBLISHABLE_KEY;
   const bridgePrivateKey = process.env.B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64;
   if (!appUrl || !appAnonKey || !bridgePrivateKey) {
     return jsonError(event, 503, "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE");
