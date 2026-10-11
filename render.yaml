@@ -30,6 +30,8 @@ services:
         fromDatabase:
           name: abandoned_assets_db
           property: SUPABASE_SERVICE_ROLE_KEY
+      - key: B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64
+        sync: false
       - key: VITE_SUPABASE_URL
         fromDatabase:
           name: abandoned_assets_db

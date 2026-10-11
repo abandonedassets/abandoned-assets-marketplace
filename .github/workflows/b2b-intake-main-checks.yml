@@ -1,0 +1,41 @@
+name: B2B intake main-runtime checks
+
+on:
+  push:
+    branches: ["fix/b2b-intake-render-main"]
+    paths:
+      - "server/api/private/b2b-intake.post.ts"
+      - "server/routes/b2b-intake.get.ts"
+      - "server/client/src/pages/Home.tsx"
+      - "package-lock.json"
+      - ".github/workflows/b2b-intake-main-checks.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "server/api/private/b2b-intake.post.ts"
+      - "server/routes/b2b-intake.get.ts"
+      - "server/client/src/pages/Home.tsx"
+      - "package-lock.json"
+      - ".github/workflows/b2b-intake-main-checks.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: b2b-intake-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build current Render/Nitro application
+        run: npm run build

@@ -16,6 +16,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background p-8">
       <h1 className="text-3xl font-black mb-8 gold-shimmer">Juggernaut Acquisition Engine</h1>
+      <p className="mb-6"><a href="/b2b-intake" className="inline-block rounded border px-3 py-2 text-sm font-semibold">B2B Corporate Debt Intake (Admin)</a></p>
       
       <div className="bg-card border p-6 rounded-xl max-w-lg mb-10">
         <h2 className="font-bold mb-4">Submit Property</h2>
