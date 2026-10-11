@@ -68,6 +68,7 @@ export default defineEventHandler((event) => {
   <section id="intake-panel" hidden>
     <div class="grid">
       <div><strong>Access</strong><p class="success">Administrator verified</p></div>
+      <div><button id="verify-bridge-button" type="button">Verify bridge signing key</button></div>
       <div><button id="signout-button" type="button">Sign out</button></div>
     </div>
     <div id="pending-notice" class="notice" hidden>A previous submission may have reached the server. Check its durable status before retrying. If the document is not linked, reattach the same original file and use exactly the same metadata.<p><button id="check-status-button" type="button">Check previous submission status</button></p></div>
@@ -138,6 +139,30 @@ function updatePendingUI() {
   byId("check-status-button").hidden = !pending;
   byId("clear-button").disabled = Boolean(pending);
   byId("clear-button").textContent = pending ? "Resolve pending submission first" : "Clear form / start new claim";
+}
+async function verifyBridgeKeyPair() {
+  if (!accessToken) {
+    showStatus("Sign in and verify administrator access first.", "error");
+    return;
+  }
+  byId("verify-bridge-button").disabled = true;
+  try {
+    const response = await fetch("/api/private/b2b-intake", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + accessToken, "Content-Type": "application/json" },
+      body: JSON.stringify({ operation: "key-check" }),
+      cache: "no-store"
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.key_pair_matches !== true || body.external_execution !== false) {
+      throw new Error(body.error || "BRIDGE_KEY_PAIR_CHECK_FAILED");
+    }
+    showStatus("Bridge private key matches the configured Edge Function public key. No upstream request or financial execution was performed.", "success");
+  } catch (error) {
+    showStatus(error instanceof Error ? error.message : "BRIDGE_KEY_PAIR_CHECK_FAILED", "error");
+  } finally {
+    byId("verify-bridge-button").disabled = false;
+  }
 }
 async function checkPendingStatus() {
   const key = readPendingKey(currentUserId);
@@ -296,6 +321,7 @@ async function submitIntake(event) {
 byId("login-form").addEventListener("submit", signIn);
 byId("intake-form").addEventListener("submit", submitIntake);
 byId("check-status-button").addEventListener("click", checkPendingStatus);
+byId("verify-bridge-button").addEventListener("click", verifyBridgeKeyPair);
 byId("signout-button").addEventListener("click", () => {
   accessToken = "";
   currentUserId = "";
