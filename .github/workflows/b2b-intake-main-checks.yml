@@ -12,6 +12,7 @@ on:
       - "package-lock.json"
       - "package.json"
       - "nitro.config.ts"
+      - "docs/b2b-intake-recovery-rollout.md"
       - "disabled-server-routes/**"
       - "server/api/public/hooks/mercury-webhook.post.ts"
       - "server/api/public/hooks/stripe-settlement.post.ts"
@@ -27,6 +28,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "nitro.config.ts"
+      - "docs/b2b-intake-recovery-rollout.md"
       - "disabled-server-routes/**"
       - ".github/workflows/b2b-intake-main-checks.yml"
 
