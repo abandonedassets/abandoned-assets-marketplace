@@ -1,0 +1,37 @@
+name: B2B intake live smoke test
+
+on:
+  push:
+    branches: ["fix/b2b-intake-live-smoke"]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify intake page is live
+        run: |
+          for attempt in $(seq 1 20); do
+            status="$(curl --silent --show-error --output /tmp/b2b-page.html --write-out '%{http_code}' 'https://abandoned-assets-marketplace.onrender.com/b2b-intake' || true)"
+            if [ "$status" = "200" ] && grep -q 'B2B Corporate Debt Intake' /tmp/b2b-page.html; then
+              echo "Intake page returned HTTP 200."
+              break
+            fi
+            if [ "$attempt" -eq 20 ]; then
+              echo "Intake page failed to become available; HTTP status: $status"
+              exit 1
+            fi
+            sleep 5
+          done
+      - name: Verify private endpoint rejects unauthenticated requests
+        run: |
+          status="$(curl --silent --show-error --output /tmp/b2b-api-response.json --write-out '%{http_code}' \
+            --request POST 'https://abandoned-assets-marketplace.onrender.com/api/private/b2b-intake' \
+            --header 'Content-Type: multipart/form-data; boundary=smoke' \
+            --data-binary 'x')"
+          test "$status" = "401"
+          grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/b2b-api-response.json
+          echo "Private intake endpoint rejects unauthenticated requests."
