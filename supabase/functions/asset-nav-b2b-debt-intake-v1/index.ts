@@ -62,7 +62,9 @@ Deno.serve(async(req:Request)=>{
  const url=Deno.env.get("SUPABASE_URL"), serviceKey=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
  if(!url||!serviceKey) return reply(req, 503,{error:"SERVER_CONFIGURATION_INCOMPLETE"});
  const ct=(req.headers.get("content-type")??"").toLowerCase();
- if(!ct.includes("multipart/form-data")) return reply(req, 415,{error:"MULTIPART_FORM_DATA_REQUIRED",fields:["document","metadata"]});
+ const isMultipart=ct.includes("multipart/form-data");
+ const isJson=ct.startsWith("application/json");
+ if(!isMultipart&&!isJson) return reply(req, 415,{error:"UNSUPPORTED_CONTENT_TYPE",fields:["multipart/form-data","application/json"]});
  const lengthHeader=req.headers.get("content-length");
  if(lengthHeader===null) return reply(req, 411,{error:"CONTENT_LENGTH_REQUIRED"});
  const requestLength=Number(lengthHeader);
@@ -86,6 +88,23 @@ Deno.serve(async(req:Request)=>{
  const {data:signatureConsumed,error:replayError}=await admin.rpc("asset_nav_b2b_consume_signature_v1",{p_signature_sha256:signatureHash});
  if(replayError||typeof signatureConsumed!=="boolean") return reply(req,503,{error:"BRIDGE_REPLAY_GUARD_UNAVAILABLE"});
  if(!signatureConsumed) return reply(req,409,{error:"BRIDGE_REQUEST_REPLAYED"});
+ if(isJson) {
+   let operation:Record<string,unknown>;
+   try {
+     const parsed=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(rawBody));
+     if(!parsed||typeof parsed!=="object"||Array.isArray(parsed)) throw new Error();
+     operation=parsed as Record<string,unknown>;
+   } catch {
+     return reply(req,400,{error:"JSON_BODY_MUST_BE_OBJECT"});
+   }
+   if(operation.operation!=="status") return reply(req,400,{error:"UNSUPPORTED_JSON_OPERATION"});
+   if(typeof operation.idempotency_key!=="string"||operation.idempotency_key.trim().length<8||operation.idempotency_key.trim().length>200) {
+     return reply(req,422,{error:"INVALID_IDEMPOTENCY_KEY"});
+   }
+   const {data:statusResult,error:statusError}=await admin.rpc("asset_nav_b2b_claim_status_v1",{p_idempotency_key:operation.idempotency_key.trim()});
+   if(statusError||!statusResult||typeof statusResult!=="object") return reply(req,503,{error:"INTAKE_STATUS_LOOKUP_UNAVAILABLE"});
+   return reply(req,200,statusResult as Record<string,unknown>);
+ }
  let form:FormData;
  try { form=await new Response(asArrayBuffer(rawBody),{headers:{"content-type":req.headers.get("content-type")??""}}).formData(); } catch { return reply(req, 400,{error:"INVALID_MULTIPART_FORM"}); }
  const file=form.get("document"), metadataText=form.get("metadata");
