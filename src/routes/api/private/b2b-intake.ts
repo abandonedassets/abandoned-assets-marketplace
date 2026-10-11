@@ -53,7 +53,7 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
         const lengthHeader = request.headers.get("content-length");
         if (lengthHeader !== null) {
           const length = Number(lengthHeader);
-          if (!Number.isSafeInteger(length) || length < 0) {
+          if (!Number.isSafeInteger(length) || length < 1) {
             return Response.json({ error: "INVALID_CONTENT_LENGTH" }, { status: 400, headers: { "Cache-Control": "no-store" } });
           }
           if (length > MAX_BYTES) {
