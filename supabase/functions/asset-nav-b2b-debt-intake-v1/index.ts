@@ -31,14 +31,14 @@ async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolea
  const timestamp=req.headers.get("x-b2b-timestamp")??"";
  const signature=req.headers.get("x-b2b-signature")??"";
  const suppliedHash=(req.headers.get("x-b2b-body-sha256")??"").toLowerCase();
- if(!/^\\d{13}$/.test(timestamp)||!/^[0-9a-f]{64}$/.test(suppliedHash)||!signature) return false;
+ if(!/^\d{13}$/.test(timestamp)||!/^[0-9a-f]{64}$/.test(suppliedHash)||!signature) return false;
  const issuedAt=Number(timestamp);
  if(!Number.isSafeInteger(issuedAt)||Math.abs(Date.now()-issuedAt)>BRIDGE_MAX_SKEW_MS) return false;
  const actualHash=await sha256(body);
  if(actualHash!==suppliedHash) return false;
  try {
   const publicKey=await crypto.subtle.importKey("raw",decodeBase64(BRIDGE_PUBLIC_KEY_B64),{name:"Ed25519"},false,["verify"]);
-  const message=new TextEncoder().encode(["v1",timestamp,"POST","asset-nav-b2b-debt-intake-v1",actualHash].join("\\n"));
+  const message=new TextEncoder().encode(["v1",timestamp,"POST","asset-nav-b2b-debt-intake-v1",actualHash].join("\n"));
   return await crypto.subtle.verify("Ed25519",publicKey,decodeBase64(signature),message);
  } catch {
   return false;
