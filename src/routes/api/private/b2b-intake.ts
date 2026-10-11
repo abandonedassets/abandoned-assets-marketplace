@@ -22,7 +22,7 @@ function toHex(value: Uint8Array): string {
 async function signBridgeBody(body: Uint8Array, privateKeyB64: string) {
   const digest = toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", body)));
   const timestamp = String(Date.now());
-  const message = new TextEncoder().encode(["v1", timestamp, "POST", TARGET_FUNCTION_SLUG, digest].join("\\n"));
+  const message = new TextEncoder().encode(["v1", timestamp, "POST", TARGET_FUNCTION_SLUG, digest].join("\n"));
   const privateKey = await crypto.subtle.importKey("pkcs8", decodeBase64(privateKeyB64), { name: "Ed25519" }, false, ["sign"]);
   const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, message));
   return { digest, timestamp, signature: encodeBase64(signature) };
