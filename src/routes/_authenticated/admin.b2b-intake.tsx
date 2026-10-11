@@ -118,7 +118,7 @@ function B2BDebtIntakePage() {
       });
       const body = await response.json().catch(() => ({})) as IntakeResult;
       if (!response.ok || response.status !== 201) {
-        const detail = body.field ? `${body.error ?? "INTAKE_FAILED"}} (${body.field})` : body.error ?? `HTTP_${response.status}`;
+        const detail = body.field ? `${body.error ?? "INTAKE_FAILED"} (${body.field})` : body.error ?? `HTTP_${response.status}`;
         throw new Error(detail);
       }
       if (
