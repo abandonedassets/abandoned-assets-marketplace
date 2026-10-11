@@ -167,7 +167,8 @@ jobs:
           wait_for_status "$RENDER_BASE_URL/api/public/b2b-intake-page" /tmp/live-b2b-page.html "200" "Live intake page"
           page_status="200"
           grep -q 'B2B Corporate Debt Intake' /tmp/live-b2b-page.html
-          node --input-type=module <<'NODE'
+          config_ok="true"
+          if ! node --input-type=module <<'NODE'
           import fs from 'node:fs';
           const html = fs.readFileSync('/tmp/live-b2b-page.html', 'utf8');
           const match = html.match(/const CONFIG = (\{[^;]+\});/);
@@ -185,6 +186,9 @@ jobs:
             process.exit(1);
           }
           NODE
+          then
+            config_ok="false"
+          fi
           wait_for_status "$RENDER_BASE_URL/api/public/health" /tmp/live-health.json "200" "Live health"
           health_status="200"
           wait_for_status "$RENDER_BASE_URL/api/public/hooks/mercury-webhook" /tmp/live-mercury.json "200" "Live Mercury GET probe"
@@ -205,4 +209,8 @@ jobs:
           stripe_post_status="$(curl --connect-timeout 3 --max-time 10 --silent --show-error --output /tmp/live-stripe-post.json --write-out '%{http_code}' --request POST "$RENDER_BASE_URL/api/public/hooks/stripe-settlement" --header 'Content-Type: application/json' --data-binary '{}')"
           echo "Live Stripe settlement POST (must not execute): HTTP $stripe_post_status"
           test "$stripe_post_status" = "404" -o "$stripe_post_status" = "405"
+          if [ "$config_ok" != "true" ]; then
+            echo "Live route probes completed, but app Supabase URL/public key configuration is missing or mismatched."
+            exit 1
+          fi
           echo "Live Render smoke tests passed: page=200 health=200 Mercury GET=200 intake POST=401 and financial POST handlers unavailable"
