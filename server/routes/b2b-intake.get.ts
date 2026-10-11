@@ -241,6 +241,11 @@ byId("intake-form").addEventListener("submit", submitIntake);
 byId("signout-button").addEventListener("click", () => {
   accessToken = "";
   currentUserId = "";
+  successfulSubmission = false;
+  byId("submit-button").disabled = false;
+  byId("intake-form").reset();
+  byId("result").hidden = true;
+  byId("status").hidden = true;
   byId("intake-panel").hidden = true;
   byId("login-panel").hidden = false;
   byId("password").value = "";
