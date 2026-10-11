@@ -18,6 +18,8 @@ type IntakeResult = {
   claim_status?: string;
   review_status?: string;
   document_sha256?: string;
+  original_document_stored?: boolean;
+  external_execution?: boolean;
   recognized_amount?: number;
   available_amount?: number;
   legal_assignability?: string;
@@ -115,11 +117,19 @@ function B2BDebtIntakePage() {
         cache: "no-store",
       });
       const body = await response.json().catch(() => ({})) as IntakeResult;
-      if (!response.ok) {
-        const detail = body.field ? `${body.error ?? "INTAKE_FAILED"} (${body.field})` : body.error ?? `HTTP_${response.status}`;
+      if (!response.ok || response.status !== 201) {
+        const detail = body.field ? `${body.error ?? "INTAKE_FAILED"}} (${body.field})` : body.error ?? `HTTP_${response.status}`;
         throw new Error(detail);
       }
-      if (typeof body.claim_id !== "string" || !body.claim_id || typeof body.document_sha256 !== "string" || !/^[0-9a-f]{64}$/.test(body.document_sha256)) {
+      if (
+        typeof body.claim_id !== "string" || !body.claim_id ||
+        typeof body.document_object_id !== "string" || !body.document_object_id ||
+        typeof body.document_sha256 !== "string" || !/^[0-9a-f]{64}$/.test(body.document_sha256) ||
+        body.original_document_stored !== true ||
+        body.external_execution !== false ||
+        body.recognized_amount !== 0 ||
+        body.available_amount !== 0
+      ) {
         throw new Error("INTAKE_RESPONSE_INCOMPLETE_RETRY_SAME_IDEMPOTENCY_KEY");
       }
       setResult(body);
