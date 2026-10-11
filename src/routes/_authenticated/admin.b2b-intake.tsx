@@ -38,6 +38,7 @@ function B2BDebtIntakePage() {
   const [assignmentRef, setAssignmentRef] = useState("");
   const [provenance, setProvenance] = useState("");
   const [document, setDocument] = useState<File | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [idempotencyKey, setIdempotencyKey] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IntakeResult | null>(null);
@@ -164,7 +165,7 @@ function B2BDebtIntakePage() {
           </label>
           <label className="block space-y-1 text-sm">
             <span className="block font-medium">Original invoice or contract</span>
-            <input required type="file" accept={ACCEPT} onChange={(e) => setDocument(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
+            <input key={fileInputKey} required type="file" accept={ACCEPT} onChange={(e) => setDocument(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
             <span className="text-xs text-muted-foreground">PDF, image, text, DOC, or DOCX; maximum 15 MB.</span>
           </label>
 
@@ -174,7 +175,7 @@ function B2BDebtIntakePage() {
             </button>
             <button disabled={busy} type="button" onClick={() => {
               setCreditorEin(""); setDebtorEin(""); setFaceValue(""); setTerms("NET-30"); setMaturity("");
-              setAssignmentClause(false); setAssignmentRef(""); setProvenance(""); setDocument(null);
+              setAssignmentClause(false); setAssignmentRef(""); setProvenance(""); setDocument(null); setFileInputKey((key) => key + 1);
               setIdempotencyKey(""); setResult(null); setError("");
             }} className="rounded-md border border-border px-4 py-2 text-sm disabled:opacity-50">
               Clear form / start new claim
