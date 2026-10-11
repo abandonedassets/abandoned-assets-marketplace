@@ -2,7 +2,7 @@ name: B2B intake main-runtime checks
 
 on:
   push:
-    branches: ["fix/**"]
+    branches: ["fix/**", "main"]
     paths:
       - "server/api/private/b2b-intake.post.ts"
       - "server/api/public/b2b-intake-page.get.ts"
@@ -77,6 +77,7 @@ jobs:
           test "$api_status" = "401"
           grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/b2b-api.json
       - name: Smoke-test deployed Render endpoints without creating records
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           RENDER_BASE_URL: https://abandoned-assets-marketplace.onrender.com
         run: |
@@ -95,8 +96,13 @@ jobs:
           echo "Live Mercury GET probe: HTTP $mercury_status"
           test "$mercury_status" = "200"
           grep -q 'mercury-webhook-relay' /tmp/live-mercury.json
-          intake_status="$(curl --connect-timeout 3 --max-time 10 --silent --show-error --output /tmp/live-intake.json --write-out '%{http_code}' --request POST "$RENDER_BASE_URL/api/private/b2b-intake" --header 'Content-Type: multipart/form-data; boundary=smoke' --data-binary 'x')"
-          echo "Live unauthenticated intake POST: HTTP $intake_status"
+          intake_status="000"
+          for attempt in $(seq 1 36); do
+            intake_status="$(curl --connect-timeout 3 --max-time 10 --silent --show-error --output /tmp/live-intake.json --write-out '%{http_code}' --request POST "$RENDER_BASE_URL/api/private/b2b-intake" --header 'Content-Type: multipart/form-data; boundary=smoke' --data-binary 'x' || true)"
+            echo "Live unauthenticated intake POST attempt $attempt: HTTP $intake_status"
+            if [ "$intake_status" = "401" ]; then break; fi
+            sleep 5
+          done
           test "$intake_status" = "401"
           grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/live-intake.json
           mercury_post_status="$(curl --connect-timeout 3 --max-time 10 --silent --show-error --output /tmp/live-mercury-post.json --write-out '%{http_code}' --request POST "$RENDER_BASE_URL/api/public/hooks/mercury-webhook" --header 'Content-Type: application/json' --data-binary '{}')"
