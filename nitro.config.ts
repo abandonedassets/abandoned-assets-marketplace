@@ -4,26 +4,11 @@ export default defineNitroConfig({
   preset: process.env.NITRO_PRESET || "node-server",
   serveStatic: false,
 
-  // Explicit registration keeps the intended API surface small. Do not set
-  // serverDir to scan every file under server/api: that would also activate
-  // the unreviewed Stripe settlement webhook in this legacy runtime.
-  routes: {
-    "/api/public/health": {
-      handler: "./server/api/public/health.get.ts",
-      method: "GET",
-    },
-    "/api/public/hooks/mercury-webhook": {
-      handler: "./server/api/public/hooks/mercury-webhook-bridge.ts",
-    },
-    "/api/public/b2b-intake-page": {
-      handler: "./server/api/public/b2b-intake-page.get.ts",
-      method: "GET",
-    },
-    "/api/private/b2b-intake": {
-      handler: "./server/api/private/b2b-intake.post.ts",
-      method: "POST",
-    },
-  },
+  // File-based routing is disabled by default in this standalone Nitro setup.
+  // Scan the existing server directory, but keep the Stripe settlement handler
+  // excluded until its authorization and live webhook configuration are reviewed.
+  serverDir: "./server",
+  ignore: ["api/public/hooks/stripe-settlement.post.ts"],
 
   routeRules: {
     "/api/public/health": {
