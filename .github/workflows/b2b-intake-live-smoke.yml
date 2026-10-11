@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Verify existing health route
+        run: |
+          status="$(curl --connect-timeout 5 --max-time 10 --silent --show-error --output /tmp/b2b-health.json --write-out '%{http_code}' 'https://abandoned-assets-marketplace.onrender.com/api/public/health')"
+          test "$status" = "200"
       - name: Verify intake page is live
         run: |
           for attempt in $(seq 1 20); do
