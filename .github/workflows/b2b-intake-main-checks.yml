@@ -76,3 +76,27 @@ jobs:
           echo "Unauthenticated intake route status: $api_status"
           test "$api_status" = "401"
           grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/b2b-api.json
+      - name: Smoke-test deployed Render endpoints without creating records
+        env:
+          RENDER_BASE_URL: https://abandoned-assets-marketplace.onrender.com
+        run: |
+          set -eu
+          get_status() {
+            curl --connect-timeout 3 --max-time 10 --silent --show-error --output "$2" --write-out '%{http_code}' "$1"
+          }
+          page_status="$(get_status "$RENDER_BASE_URL/api/public/b2b-intake-page" /tmp/live-b2b-page.html)"
+          test "$page_status" = "200"
+          grep -q 'B2B Corporate Debt Intake' /tmp/live-b2b-page.html
+          health_status="$(get_status "$RENDER_BASE_URL/api/public/health" /tmp/live-health.json)"
+          test "$health_status" = "200"
+          mercury_status="$(get_status "$RENDER_BASE_URL/api/public/hooks/mercury-webhook" /tmp/live-mercury.json)"
+          test "$mercury_status" = "200"
+          grep -q 'mercury-webhook-relay' /tmp/live-mercury.json
+          intake_status="$(curl --connect-timeout 3 --max-time 10 --silent --show-error --output /tmp/live-intake.json --write-out '%{http_code}' --request POST "$RENDER_BASE_URL/api/private/b2b-intake" --header 'Content-Type: multipart/form-data; boundary=smoke' --data-binary 'x')"
+          test "$intake_status" = "401"
+          grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/live-intake.json
+          mercury_post_status="$(curl --connect-timeout 3 --max-time 10 --silent --show-error --output /tmp/live-mercury-post.json --write-out '%{http_code}' --request POST "$RENDER_BASE_URL/api/public/hooks/mercury-webhook" --header 'Content-Type: application/json' --data-binary '{}')"
+          test "$mercury_post_status" = "404"
+          stripe_post_status="$(curl --connect-timeout 3 --max-time 10 --silent --show-error --output /tmp/live-stripe-post.json --write-out '%{http_code}' --request POST "$RENDER_BASE_URL/api/public/hooks/stripe-settlement" --header 'Content-Type: application/json' --data-binary '{}')"
+          test "$stripe_post_status" = "404"
+          echo "Live Render smoke tests passed: page=200 health=200 Mercury GET=200 intake POST=401 Mercury POST=404 Stripe POST=404"
