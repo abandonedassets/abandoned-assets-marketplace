@@ -21,7 +21,7 @@ The target service-role key remains inside Supabase. The Render route uses the a
 - An ambiguous submission retains its idempotency key; do not clear it to bypass an unknown outcome.
 - The current Render service remains on `main`; this work does not switch branches or enable the production branch's automatic payout/cron configuration.
 
-Nitro file scanning is explicitly enabled with `scanDirs: ["./server"]`. The Stripe settlement POST and Mercury webhook POST handlers are excluded from scanning until separately reviewed. The Mercury GET probe remains available. CI starts the built Nitro server locally and verifies the health route, Mercury probe, intake page, unauthenticated intake rejection, and that both financial webhook POST routes remain 404.
+Nitro file scanning is explicitly enabled with `scanDirs: ["./server"]`. The Stripe settlement POST handler is excluded from scanning, and the unverified Mercury webhook POST handler is preserved under `disabled-server-routes/` rather than the active Nitro tree. The Mercury GET probe remains available. CI starts the built Nitro server locally and verifies the health route, Mercury probe, intake page, unauthenticated intake rejection, and that both financial webhook POST routes remain 404.
 
 ## Verification
 
