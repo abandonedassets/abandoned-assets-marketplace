@@ -167,8 +167,10 @@ jobs:
           wait_for_status "$RENDER_BASE_URL/api/public/b2b-intake-page" /tmp/live-b2b-page.html "200" "Live intake page"
           page_status="200"
           grep -q 'B2B Corporate Debt Intake' /tmp/live-b2b-page.html
-          if ! grep -Eq 'const CONFIG = \{"url":"https://[^"]+","key":"[^"]+"\};' /tmp/live-b2b-page.html; then
-            echo "Live intake page is missing its application Supabase URL or public key."
+          # The route includes urlMismatch:false between url and key; accept that
+          # explicit fail-closed marker while still rejecting an empty/mismatched URL.
+          if ! grep -Eq 'const CONFIG = \\{"url":"https://[^"]+","(urlMismatch":false,)?key":"[^"]+"\\};' /tmp/live-b2b-page.html; then
+            echo "Live intake page is missing a valid application Supabase URL/public key or reports a URL mismatch."
             exit 1
           fi
           wait_for_status "$RENDER_BASE_URL/api/public/health" /tmp/live-health.json "200" "Live health"
