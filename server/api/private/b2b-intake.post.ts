@@ -4,6 +4,7 @@ const TARGET =
   "https://midneoocykeoquxkjkrg.supabase.co/functions/v1/asset-nav-b2b-debt-intake-v1";
 const TARGET_API_KEY = "sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd";
 const TARGET_FUNCTION_SLUG = "asset-nav-b2b-debt-intake-v1";
+const BRIDGE_PUBLIC_KEY_B64 = "3x3jqddrm93OG408SAU1uX4CkYcZ+nDoqLC2nFtzOew=";
 const MAX_BYTES = 16 * 1024 * 1024;
 
 function decodeBase64(value: string): Uint8Array {
@@ -45,6 +46,29 @@ async function signBridgeBody(body: Uint8Array, privateKeyB64: string) {
     await crypto.subtle.sign("Ed25519", privateKey, asArrayBuffer(message)),
   );
   return { digest, timestamp, signature: encodeBase64(signature) };
+}
+
+async function bridgeKeyPairMatches(signed: { digest: string; timestamp: string; signature: string }): Promise<boolean> {
+  try {
+    const publicKey = await crypto.subtle.importKey(
+      "raw",
+      asArrayBuffer(decodeBase64(BRIDGE_PUBLIC_KEY_B64)),
+      { name: "Ed25519" },
+      false,
+      ["verify"],
+    );
+    const message = new TextEncoder().encode(
+      ["v1", signed.timestamp, "POST", TARGET_FUNCTION_SLUG, signed.digest].join("\n"),
+    );
+    return await crypto.subtle.verify(
+      "Ed25519",
+      publicKey,
+      asArrayBuffer(decodeBase64(signed.signature)),
+      asArrayBuffer(message),
+    );
+  } catch {
+    return false;
+  }
 }
 
 function jsonError(event: any, status: number, error: string) {
@@ -133,6 +157,9 @@ export default defineEventHandler(async (event) => {
 
   try {
     const signed = await signBridgeBody(rawBody, bridgePrivateKey);
+    if (!(await bridgeKeyPairMatches(signed))) {
+      return jsonError(event, 503, "B2B_INTAKE_BRIDGE_KEY_PAIR_MISMATCH");
+    }
     const upstream = await fetch(TARGET, {
       method: "POST",
       headers: {
