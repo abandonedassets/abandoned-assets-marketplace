@@ -74,6 +74,13 @@ Deno.serve(async(req:Request)=>{
  if(!await verifyBridgeSignature(req,rawBody)) return reply(req, 401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
  const suppliedSignature=req.headers.get("x-b2b-signature")??"";
+ // Preserve replay protection for signatures recorded by the previous version,
+ // which hashed the Base64 text. The legacy digest expires with the existing
+ // ten-minute TTL; the canonical digest is based on decoded signature bytes.
+ const legacySignatureHash=await sha256(new TextEncoder().encode(suppliedSignature));
+ const {data:legacyConsumed,error:legacyReplayError}=await admin.rpc("asset_nav_b2b_consume_signature_v1",{p_signature_sha256:legacySignatureHash});
+ if(legacyReplayError||typeof legacyConsumed!=="boolean") return reply(req,503,{error:"BRIDGE_REPLAY_GUARD_UNAVAILABLE"});
+ if(!legacyConsumed) return reply(req,409,{error:"BRIDGE_REQUEST_REPLAYED"});
  const signatureHash=await signatureDigest(suppliedSignature);
  if(!signatureHash) return reply(req,401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  const {data:signatureConsumed,error:replayError}=await admin.rpc("asset_nav_b2b_consume_signature_v1",{p_signature_sha256:signatureHash});
