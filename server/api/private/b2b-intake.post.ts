@@ -177,6 +177,21 @@ export default defineEventHandler(async (event) => {
     if (!(await bridgeKeyPairMatches(signed))) {
       return jsonError(event, 503, "B2B_INTAKE_BRIDGE_KEY_PAIR_MISMATCH");
     }
+    if (isJson) {
+      let operation: unknown;
+      try {
+        operation = JSON.parse(rawBody.toString("utf8"));
+      } catch {
+        return jsonError(event, 400, "JSON_BODY_MUST_BE_OBJECT");
+      }
+      if (operation && typeof operation === "object" && !Array.isArray(operation) &&
+          (operation as Record<string, unknown>).operation === "key-check") {
+        setResponseStatus(event, 200);
+        setHeader(event, "content-type", "application/json; charset=utf-8");
+        setHeader(event, "cache-control", "no-store");
+        return { key_pair_matches: true, external_execution: false };
+      }
+    }
     const upstream = await fetch(TARGET, {
       method: "POST",
       headers: {
