@@ -25,8 +25,9 @@ function signatureMatches(type:string, bytes:Uint8Array):boolean {
   default: return false;
  }
 }
-async function sha256(bytes:Uint8Array) { return hex(new Uint8Array(await crypto.subtle.digest("SHA-256",bytes))); }
+async function sha256(bytes:Uint8Array) { return hex(new Uint8Array(await crypto.subtle.digest("SHA-256",asArrayBuffer(bytes)))); }
 function decodeBase64(value:string):Uint8Array { return Uint8Array.from(atob(value),c=>c.charCodeAt(0)); }
+function asArrayBuffer(value:Uint8Array):ArrayBuffer { const copy=new Uint8Array(value.byteLength); copy.set(value); return copy.buffer; }
 async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolean> {
  const timestamp=req.headers.get("x-b2b-timestamp")??"";
  const signature=req.headers.get("x-b2b-signature")??"";
@@ -37,9 +38,9 @@ async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolea
  const actualHash=await sha256(body);
  if(actualHash!==suppliedHash) return false;
  try {
-  const publicKey=await crypto.subtle.importKey("raw",decodeBase64(BRIDGE_PUBLIC_KEY_B64),{name:"Ed25519"},false,["verify"]);
+  const publicKey=await crypto.subtle.importKey("raw",asArrayBuffer(decodeBase64(BRIDGE_PUBLIC_KEY_B64)),{name:"Ed25519"},false,["verify"]);
   const message=new TextEncoder().encode(["v1",timestamp,"POST","asset-nav-b2b-debt-intake-v1",actualHash].join("\n"));
-  return await crypto.subtle.verify("Ed25519",publicKey,decodeBase64(signature),message);
+  return await crypto.subtle.verify("Ed25519",publicKey,asArrayBuffer(decodeBase64(signature)),asArrayBuffer(message));
  } catch {
   return false;
  }
@@ -70,7 +71,7 @@ Deno.serve(async(req:Request)=>{
  if(!await verifyBridgeSignature(req,rawBody)) return reply(req, 401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
  let form:FormData;
- try { form=await new Response(rawBody,{headers:{"content-type":req.headers.get("content-type")??""}}).formData(); } catch { return reply(req, 400,{error:"INVALID_MULTIPART_FORM"}); }
+ try { form=await new Response(asArrayBuffer(rawBody),{headers:{"content-type":req.headers.get("content-type")??""}}).formData(); } catch { return reply(req, 400,{error:"INVALID_MULTIPART_FORM"}); }
  const file=form.get("document"), metadataText=form.get("metadata");
  if(!(file instanceof File)||typeof metadataText!=="string") return reply(req, 400,{error:"DOCUMENT_AND_METADATA_REQUIRED"});
  if(file.size<=0||file.size>15*1024*1024) return reply(req, 413,{error:"DOCUMENT_SIZE_LIMIT_EXCEEDED"});
