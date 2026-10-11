@@ -88,25 +88,25 @@ function B2BDebtIntakePage() {
     let active = true;
     async function verifyAdminAccess() {
       try {
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData.user) {
-        if (active) setAuthorization("denied");
-        return;
-      }
-      const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
-        _user_id: userData.user.id,
-        _role: "admin",
-      });
-      if (active) {
-        setAuthorization(!roleError && isAdmin === true ? "allowed" : "denied");
-        if (!roleError && isAdmin === true) {
-          const pendingKey = readStoredIdempotencyKey(userData.user.id);
-          if (pendingKey) {
-            setIdempotencyKey(pendingKey);
-            setIdempotencyOwner(userData.user.id);
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) {
+          if (active) setAuthorization("denied");
+          return;
+        }
+        const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+          _user_id: userData.user.id,
+          _role: "admin",
+        });
+        if (active) {
+          setAuthorization(!roleError && isAdmin === true ? "allowed" : "denied");
+          if (!roleError && isAdmin === true) {
+            const pendingKey = readStoredIdempotencyKey(userData.user.id);
+            if (pendingKey) {
+              setIdempotencyKey(pendingKey);
+              setIdempotencyOwner(userData.user.id);
+            }
           }
         }
-      }
       } catch {
         if (active) setAuthorization("denied");
       }
