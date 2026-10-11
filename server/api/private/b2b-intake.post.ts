@@ -116,8 +116,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const contentType = getHeader(event, "content-type") ?? "";
-  if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
-    return jsonError(event, 415, "MULTIPART_FORM_DATA_REQUIRED");
+  const normalizedContentType = contentType.toLowerCase();
+  const isMultipart = normalizedContentType.startsWith("multipart/form-data;");
+  const isJson = normalizedContentType.startsWith("application/json");
+  if (!isMultipart && !isJson) {
+    return jsonError(event, 415, "UNSUPPORTED_CONTENT_TYPE");
   }
 
   const lengthHeader = getHeader(event, "content-length");
