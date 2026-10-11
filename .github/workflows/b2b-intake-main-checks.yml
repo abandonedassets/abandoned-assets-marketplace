@@ -76,6 +76,21 @@ jobs:
           echo "Unauthenticated intake route status: $api_status"
           test "$api_status" = "401"
           grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/b2b-api.json
+      - name: Verify live Edge Function rejects unsigned intake
+        env:
+          EDGE_URL: https://midneoocykeoquxkjkrg.supabase.co/functions/v1/asset-nav-b2b-debt-intake-v1
+          EDGE_API_KEY: sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd
+        run: |
+          set -eu
+          status="$(curl --connect-timeout 3 --max-time 15 --silent --show-error --output /tmp/edge-unsigned.json --write-out '%{http_code}' \
+            --request POST "$EDGE_URL" \
+            --header "apikey: $EDGE_API_KEY" \
+            --header 'Authorization: Bearer b2b-bridge-v1' \
+            --header 'Content-Type: multipart/form-data; boundary=smoke' \
+            --data-binary 'x')"
+          echo "Unsigned live Edge Function request: HTTP $status"
+          test "$status" = "401"
+          grep -q '"error":"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"' /tmp/edge-unsigned.json
       - name: Smoke-test deployed Render endpoints without creating records
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
