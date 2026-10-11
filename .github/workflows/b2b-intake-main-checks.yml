@@ -20,9 +20,14 @@ on:
     branches: [main]
     paths:
       - "server/api/private/b2b-intake.post.ts"
+      - "supabase/functions/asset-nav-b2b-debt-intake-v1/**"
+      - "supabase/migrations/**"
       - "server/api/public/b2b-intake-page.get.ts"
       - "server/client/src/pages/Home.tsx"
+      - "package.json"
       - "package-lock.json"
+      - "nitro.config.ts"
+      - "disabled-server-routes/**"
       - ".github/workflows/b2b-intake-main-checks.yml"
 
 permissions:
@@ -44,6 +49,12 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Set up Deno for Edge Function tests
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test canonical Edge Function signature handling
+        run: deno test supabase/functions/asset-nav-b2b-debt-intake-v1/bridge-signature_test.ts
       - name: Report dependency vulnerabilities without changing the lockfile
         continue-on-error: true
         run: |
