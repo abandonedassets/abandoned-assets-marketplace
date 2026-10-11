@@ -57,7 +57,6 @@ export function AdminNav() {
         B2B Debt Intake
       </Link>
       <Link
-
         to="/admin/system-ledger"
         className="hover:text-foreground"
         activeProps={{ className: "text-foreground" }}
