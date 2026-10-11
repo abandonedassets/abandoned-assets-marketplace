@@ -87,6 +87,7 @@ function B2BDebtIntakePage() {
   useEffect(() => {
     let active = true;
     async function verifyAdminAccess() {
+      try {
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
         if (active) setAuthorization("denied");
@@ -105,6 +106,9 @@ function B2BDebtIntakePage() {
             setIdempotencyOwner(userData.user.id);
           }
         }
+      }
+      } catch {
+        if (active) setAuthorization("denied");
       }
     }
     void verifyAdminAccess();
