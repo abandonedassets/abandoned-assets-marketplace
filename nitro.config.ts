@@ -7,7 +7,7 @@ export default defineNitroConfig({
   // File-based routing is disabled by default in this standalone Nitro setup.
   // Scan the existing server directory, but keep the Stripe settlement handler
   // excluded until its authorization and live webhook configuration are reviewed.
-  serverDir: "./server",
+  scanDirs: ["./server"],
   ignore: ["api/public/hooks/stripe-settlement.post.ts"],
 
   routeRules: {
