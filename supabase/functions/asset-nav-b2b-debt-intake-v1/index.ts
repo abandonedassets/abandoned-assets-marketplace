@@ -68,6 +68,7 @@ Deno.serve(async(req:Request)=>{
  try { rawBody=new Uint8Array(await req.arrayBuffer()); } catch { return reply(req, 400,{error:"INVALID_REQUEST_BODY"}); }
  if(rawBody.byteLength!==requestLength) return reply(req, 400,{error:"CONTENT_LENGTH_MISMATCH"});
  if(!await verifyBridgeSignature(req,rawBody)) return reply(req, 401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
+ const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
  let form:FormData;
  try { form=await new Response(rawBody,{headers:{"content-type":req.headers.get("content-type")??""}}).formData(); } catch { return reply(req, 400,{error:"INVALID_MULTIPART_FORM"}); }
  const file=form.get("document"), metadataText=form.get("metadata");
