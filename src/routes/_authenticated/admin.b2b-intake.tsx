@@ -29,6 +29,45 @@ type IntakeResult = {
 };
 
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.tif,.tiff,.txt,.doc,.docx";
+const IDEMPOTENCY_STORAGE_KEY = "b2b-intake-idempotency";
+
+function readStoredIdempotencyKey(userId: string): string {
+  try {
+    if (typeof window === "undefined") return "";
+    const raw = window.sessionStorage.getItem(IDEMPOTENCY_STORAGE_KEY);
+    if (!raw) return "";
+    const stored = JSON.parse(raw) as { userId?: unknown; key?: unknown };
+    return stored.userId === userId && typeof stored.key === "string" ? stored.key : "";
+  } catch {
+    return "";
+  }
+}
+
+function storeIdempotencyKey(userId: string, key: string): void {
+  try {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(IDEMPOTENCY_STORAGE_KEY, JSON.stringify({ userId, key }));
+    }
+  } catch {
+    // The in-memory retry key remains usable if session storage is unavailable.
+  }
+}
+
+function clearStoredIdempotencyKey(userId?: string, key?: string): void {
+  try {
+    if (typeof window === "undefined") return;
+    if (userId && key) {
+      const raw = window.sessionStorage.getItem(IDEMPOTENCY_STORAGE_KEY);
+      if (raw) {
+        const stored = JSON.parse(raw) as { userId?: unknown; key?: unknown };
+        if (stored.userId !== userId || stored.key !== key) return;
+      }
+    }
+    window.sessionStorage.removeItem(IDEMPOTENCY_STORAGE_KEY);
+  } catch {
+    // Storage cleanup must not block the form's in-memory reset.
+  }
+}
 
 function B2BDebtIntakePage() {
   const [creditorEin, setCreditorEin] = useState("");
@@ -42,6 +81,7 @@ function B2BDebtIntakePage() {
   const [document, setDocument] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [idempotencyKey, setIdempotencyKey] = useState("");
+  const [idempotencyOwner, setIdempotencyOwner] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IntakeResult | null>(null);
   const [error, setError] = useState("");
@@ -92,9 +132,14 @@ function B2BDebtIntakePage() {
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      if (sessionError || !token) throw new Error("Sign in again before submitting.");
-      const key = idempotencyKey || `b2b-${crypto.randomUUID()}`;
+      const userId = sessionData.session?.user.id;
+      if (sessionError || !token || !userId) throw new Error("Sign in again before submitting.");
+      const key = idempotencyOwner === userId && idempotencyKey
+        ? idempotencyKey
+        : readStoredIdempotencyKey(userId) || `b2b-${crypto.randomUUID()}`;
       setIdempotencyKey(key);
+      setIdempotencyOwner(userId);
+      storeIdempotencyKey(userId, key);
       const metadata = {
         creditor_corporate_ein: creditorEin.trim(),
         debtor_corporate_ein: debtorEin.trim(),
@@ -134,6 +179,8 @@ function B2BDebtIntakePage() {
       }
       setResult(body);
       setIdempotencyKey("");
+      setIdempotencyOwner("");
+      clearStoredIdempotencyKey(userId, key);
     } catch (e) {
       setError(e instanceof Error ? e.message : "INTAKE_FAILED");
     } finally {
@@ -222,7 +269,7 @@ function B2BDebtIntakePage() {
             <button disabled={busy} type="button" onClick={() => {
               setCreditorEin(""); setDebtorEin(""); setFaceValue(""); setTerms("NET-30"); setMaturity("");
               setAssignmentClause(false); setAssignmentRef(""); setProvenance(""); setDocument(null); setFileInputKey((key) => key + 1);
-              setIdempotencyKey(""); setResult(null); setError("");
+              setIdempotencyKey(""); setIdempotencyOwner(""); clearStoredIdempotencyKey(); setResult(null); setError("");
             }} className="rounded-md border border-border px-4 py-2 text-sm disabled:opacity-50">
               Clear form / start new claim
             </button>
