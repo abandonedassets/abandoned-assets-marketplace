@@ -8,6 +8,8 @@ on:
       - "src/routes/_authenticated/admin.b2b-intake.tsx"
       - "src/components/AdminNav.tsx"
       - "supabase/config.toml"
+      - "render.yaml"
+      - "docs/b2b-intake-bridge-deployment.md"
       - "supabase/functions/asset-nav-b2b-debt-intake-v1/**"
       - ".github/workflows/b2b-intake-checks.yml"
 
