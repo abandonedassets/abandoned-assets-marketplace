@@ -24,6 +24,7 @@ on:
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
       - ".github/workflows/b2b-intake-main-checks.yml"
+      - ".github/dependabot.yml"
 
 permissions:
   contents: read
