@@ -5,6 +5,8 @@ on:
     branches: ["fix/**", "main"]
     paths:
       - "server/api/private/b2b-intake.post.ts"
+      - "supabase/functions/asset-nav-b2b-debt-intake-v1/**"
+      - "supabase/migrations/**"
       - "server/api/public/b2b-intake-page.get.ts"
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
