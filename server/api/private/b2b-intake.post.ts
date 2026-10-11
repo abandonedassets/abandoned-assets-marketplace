@@ -7,6 +7,20 @@ const TARGET_FUNCTION_SLUG = "asset-nav-b2b-debt-intake-v1";
 const BRIDGE_PUBLIC_KEY_B64 = "3x3jqddrm93OG408SAU1uX4CkYcZ+nDoqLC2nFtzOew=";
 const MAX_BYTES = 16 * 1024 * 1024;
 
+function resolveAppSupabaseUrl(): string | null {
+  const serverUrl = process.env.SUPABASE_URL?.trim();
+  const browserUrl = process.env.VITE_SUPABASE_URL?.trim();
+  if (serverUrl && browserUrl) {
+    try {
+      const normalize = (value: string) => new URL(value).origin;
+      if (normalize(serverUrl) !== normalize(browserUrl)) return null;
+    } catch {
+      return null;
+    }
+  }
+  return browserUrl || serverUrl || null;
+}
+
 function decodeBase64(value: string): Uint8Array {
   return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
 }
@@ -88,7 +102,7 @@ export default defineEventHandler(async (event) => {
   const match = /^Bearer\s+(.+)$/i.exec(authorization);
   if (!match?.[1]) return jsonError(event, 401, "AUTHENTICATION_REQUIRED");
 
-  const appUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const appUrl = resolveAppSupabaseUrl();
   const appAnonKey =
     process.env.SUPABASE_ANON_KEY ??
     process.env.VITE_SUPABASE_ANON_KEY ??
