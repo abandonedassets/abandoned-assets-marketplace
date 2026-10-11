@@ -7,6 +7,8 @@ on:
       - "src/routes/api/private/b2b-intake.ts"
       - "src/routes/_authenticated/admin.b2b-intake.tsx"
       - "src/components/AdminNav.tsx"
+      - "supabase/config.toml"
+      - "supabase/functions/asset-nav-b2b-debt-intake-v1/**"
       - ".github/workflows/b2b-intake-checks.yml"
 
 permissions:
@@ -29,3 +31,9 @@ jobs:
         run: bunx tsc --noEmit
       - name: Lint intake files
         run: bunx eslint src/routes/api/private/b2b-intake.ts src/routes/_authenticated/admin.b2b-intake.tsx src/components/AdminNav.tsx
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check intake Edge Function
+        run: deno check --no-lock supabase/functions/asset-nav-b2b-debt-intake-v1/index.ts
