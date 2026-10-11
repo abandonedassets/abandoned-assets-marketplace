@@ -47,3 +47,13 @@ jobs:
           deno-version: v2.x
       - name: Type-check intake Edge Function
         run: deno check --no-lock supabase/functions/asset-nav-b2b-debt-intake-v1/index.ts
+      - name: Smoke-test live bridge rejects unsigned requests
+        run: |
+          status="$(curl --silent --show-error --output /tmp/b2b-bridge-response.json --write-out '%{http_code}' \
+            --request POST 'https://midneoocykeoquxkjkrg.supabase.co/functions/v1/asset-nav-b2b-debt-intake-v1' \
+            --header 'apikey: sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd' \
+            --header 'Authorization: Bearer b2b-bridge-v1' \
+            --header 'Content-Type: multipart/form-data; boundary=smoke' \
+            --data-binary 'x')"
+          test "$status" = "401"
+          grep -q '"error":"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"' /tmp/b2b-bridge-response.json
