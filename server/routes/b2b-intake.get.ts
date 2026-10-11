@@ -171,6 +171,10 @@ function showLoginError(message) {
 }
 async function submitIntake(event) {
   event.preventDefault();
+  if (successfulSubmission) {
+    showStatus("Clear the form before starting another claim.", "error");
+    return;
+  }
   byId("submit-button").disabled = true;
   byId("result").hidden = true;
   try {
