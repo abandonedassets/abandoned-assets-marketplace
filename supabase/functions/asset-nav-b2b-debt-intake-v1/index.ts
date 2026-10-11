@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { decodeCanonicalEd25519Signature, signatureDigest } from "./bridge-signature.ts";
 const allowedOrigins = new Set(["https://abandonedasset.online","https://www.abandonedasset.online"]);
 function corsHeaders(req:Request):Record<string,string> {
  const origin=req.headers.get("Origin")??"";
@@ -33,6 +34,8 @@ async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolea
  const signature=req.headers.get("x-b2b-signature")??"";
  const suppliedHash=(req.headers.get("x-b2b-body-sha256")??"").toLowerCase();
  if(!/^\d{13}$/.test(timestamp)||!/^[0-9a-f]{64}$/.test(suppliedHash)||!signature) return false;
+ const signatureBytes=decodeCanonicalEd25519Signature(signature);
+ if(!signatureBytes) return false;
  const issuedAt=Number(timestamp);
  if(!Number.isSafeInteger(issuedAt)||Math.abs(Date.now()-issuedAt)>BRIDGE_MAX_SKEW_MS) return false;
  const actualHash=await sha256(body);
@@ -40,7 +43,7 @@ async function verifyBridgeSignature(req:Request,body:Uint8Array):Promise<boolea
  try {
   const publicKey=await crypto.subtle.importKey("raw",asArrayBuffer(decodeBase64(BRIDGE_PUBLIC_KEY_B64)),{name:"Ed25519"},false,["verify"]);
   const message=new TextEncoder().encode(["v1",timestamp,"POST","asset-nav-b2b-debt-intake-v1",actualHash].join("\n"));
-  return await crypto.subtle.verify("Ed25519",publicKey,asArrayBuffer(decodeBase64(signature)),asArrayBuffer(message));
+  return await crypto.subtle.verify("Ed25519",publicKey,asArrayBuffer(signatureBytes),asArrayBuffer(message));
  } catch {
   return false;
  }
@@ -71,7 +74,8 @@ Deno.serve(async(req:Request)=>{
  if(!await verifyBridgeSignature(req,rawBody)) return reply(req, 401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  const admin=createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
  const suppliedSignature=req.headers.get("x-b2b-signature")??"";
- const signatureHash=await sha256(new TextEncoder().encode(suppliedSignature));
+ const signatureHash=await signatureDigest(suppliedSignature);
+ if(!signatureHash) return reply(req,401,{error:"BRIDGE_SIGNATURE_INVALID_OR_EXPIRED"});
  const {data:signatureConsumed,error:replayError}=await admin.rpc("asset_nav_b2b_consume_signature_v1",{p_signature_sha256:signatureHash});
  if(replayError||typeof signatureConsumed!=="boolean") return reply(req,503,{error:"BRIDGE_REPLAY_GUARD_UNAVAILABLE"});
  if(!signatureConsumed) return reply(req,409,{error:"BRIDGE_REQUEST_REPLAYED"});
