@@ -9,6 +9,9 @@ on:
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
       - "nitro.config.ts"
+      - "disabled-server-routes/**"
+      - "server/api/public/hooks/mercury-webhook.post.ts"
+      - "server/api/public/hooks/stripe-settlement.post.ts"
       - ".github/workflows/b2b-intake-main-checks.yml"
   pull_request:
     branches: [main]
