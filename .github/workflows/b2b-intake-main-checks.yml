@@ -41,6 +41,30 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
+      - name: Report dependency vulnerabilities without changing the lockfile
+        continue-on-error: true
+        run: |
+          set +e
+          npm audit --json > /tmp/npm-audit.json
+          audit_status=$?
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const report = JSON.parse(fs.readFileSync('/tmp/npm-audit.json', 'utf8'));
+          const meta = report.metadata?.vulnerabilities ?? {};
+          console.log('npm audit severity totals:', JSON.stringify(meta));
+          for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+            const fix = item.fixAvailable;
+            console.log(JSON.stringify({
+              package: name,
+              severity: item.severity,
+              direct: item.isDirect,
+              range: item.range,
+              via: item.via.map(v => typeof v === 'string' ? v : {name:v.name, title:v.title, range:v.range, url:v.url}),
+              fixAvailable: fix
+            }));
+          }
+          NODE
+          echo "npm audit exit status: $audit_status"
       - name: Build current Render/Nitro application
         run: npm run build
       - name: Verify unreviewed webhook handlers are not bundled
