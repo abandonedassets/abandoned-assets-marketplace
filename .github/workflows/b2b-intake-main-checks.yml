@@ -2,7 +2,7 @@ name: B2B intake main-runtime checks
 
 on:
   push:
-    branches: ["fix/b2b-intake-render-main"]
+    branches: ["fix/b2b-intake-*"]
     paths:
       - "server/api/private/b2b-intake.post.ts"
       - "server/api/public/b2b-intake-page.get.ts"
