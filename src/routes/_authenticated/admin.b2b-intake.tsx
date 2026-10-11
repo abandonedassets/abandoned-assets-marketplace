@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/admin/b2b-intake")({
@@ -43,6 +43,27 @@ function B2BDebtIntakePage() {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IntakeResult | null>(null);
   const [error, setError] = useState("");
+  const [authorization, setAuthorization] = useState<"checking" | "allowed" | "denied">("checking");
+
+  useEffect(() => {
+    let active = true;
+    async function verifyAdminAccess() {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
+        if (active) setAuthorization("denied");
+        return;
+      }
+      const { data: isAdmin, error: roleError } = await supabase.rpc("has_role", {
+        _user_id: userData.user.id,
+        _role: "admin",
+      });
+      if (active) setAuthorization(!roleError && isAdmin === true ? "allowed" : "denied");
+    }
+    void verifyAdminAccess();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,6 +129,21 @@ function B2BDebtIntakePage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (authorization !== "allowed") {
+    return (
+      <main className="min-h-screen bg-background p-4 text-foreground md:p-8">
+        <section role={authorization === "checking" ? "status" : "alert"} className="mx-auto max-w-xl rounded-lg border border-border p-6">
+          <h1 className="text-lg font-semibold">B2B Corporate Debt Intake</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {authorization === "checking"
+              ? "Verifying administrator access…"
+              : "Administrator access is required. No claim was submitted."}
+          </p>
+        </section>
+      </main>
+    );
   }
 
   return (
