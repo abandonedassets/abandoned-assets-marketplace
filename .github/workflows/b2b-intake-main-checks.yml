@@ -43,6 +43,10 @@ jobs:
         run: npm ci
       - name: Build current Render/Nitro application
         run: npm run build
+      - name: Verify unreviewed webhook handlers are not bundled
+        run: |
+          test ! -f .output/server/chunks/routes/api/public/hooks/stripe-settlement.post.mjs
+          test ! -f .output/server/chunks/routes/api/public/hooks/mercury-webhook.post.mjs
       - name: Smoke-test explicitly registered Nitro routes locally
         run: |
           SUPABASE_URL='https://example.supabase.co' \
@@ -67,12 +71,7 @@ jobs:
           mercury_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/mercury.json --write-out '%{http_code}' 'http://127.0.0.1:3000/api/public/hooks/mercury-webhook')"
           test "$mercury_status" = "200"
           grep -q 'mercury-webhook-relay' /tmp/mercury.json
-          mercury_post_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/mercury-post.json --write-out '%{http_code}' --request POST 'http://127.0.0.1:3000/api/public/hooks/mercury-webhook' --header 'Content-Type: application/json' --data-binary '{}')"
-          test "$mercury_post_status" = "404"
           grep -q 'B2B Corporate Debt Intake' /tmp/b2b-page.html
-          stripe_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/stripe.json --write-out '%{http_code}' --request POST 'http://127.0.0.1:3000/api/public/hooks/stripe-settlement' --header 'Content-Type: application/json' --data-binary '{}')"
-          echo "Stripe settlement route status: $stripe_status"
-          test "$stripe_status" = "404"
           api_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/b2b-api.json --write-out '%{http_code}' --request POST 'http://127.0.0.1:3000/api/private/b2b-intake' --header 'Content-Type: multipart/form-data; boundary=smoke' --data-binary 'x')"
           echo "Unauthenticated intake route status: $api_status"
           test "$api_status" = "401"
