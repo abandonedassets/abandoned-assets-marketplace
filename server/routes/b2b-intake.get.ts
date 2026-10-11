@@ -93,6 +93,7 @@ export default defineEventHandler((event) => {
 const CONFIG = ${config};
 let accessToken = "";
 let currentUserId = "";
+let successfulSubmission = false;
 const STORAGE_KEY = "b2b-intake-idempotency";
 const byId = (id) => document.getElementById(id);
 function showStatus(message, kind) {
@@ -218,6 +219,8 @@ async function submitIntake(event) {
     }
     clearPendingKey(currentUserId, key);
     updatePendingUI();
+    successfulSubmission = true;
+    byId("submit-button").disabled = true;
     byId("claim-id").textContent = body.claim_id;
     byId("document-object-id").textContent = body.document_object_id;
     byId("document-hash").textContent = body.document_sha256;
@@ -244,6 +247,8 @@ byId("clear-button").addEventListener("click", () => {
     return;
   }
   byId("intake-form").reset();
+  successfulSubmission = false;
+  byId("submit-button").disabled = false;
   byId("status").hidden = true;
   byId("result").hidden = true;
 });
