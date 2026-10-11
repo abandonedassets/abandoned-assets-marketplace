@@ -8,15 +8,15 @@ No production migration, Edge Function deployment, valid signed intake, or payme
 
 ## Required order
 
-1. **Review the PR and green CI.** Confirm the latest head commit has passing pull-request checks. Do not merge a stale commit.
+1. **Review the PR and green CI.** Confirm the latest head commit has passing pull-request checks and review the migration/function diffs. Do not merge a stale commit.
 2. **Apply database migrations to the B2B target project** `midneoocykeoquxkjkrg` in order:
    - `20261011210000_b2b_claim_idempotency_race_recovery_v1.sql`
    - `20261011213000_b2b_intake_durable_status_recovery_v1.sql`
-   Confirm the function definitions and execute grants are present afterward. Do not create synthetic claim rows as a migration test.
-3. **Deploy the Edge Function** `asset-nav-b2b-debt-intake-v1` from the reviewed PR head. Confirm the deployed version includes canonical signature validation, compatibility with existing replay hashes, JSON status lookup, and the service-role-only status RPC.
-4. **Verify the Render bridge key pair without submitting intake.** After the reviewed application code is deployed, sign in as an authorized application administrator and use **Verify bridge signing key**. It must report a match. A mismatch is a hard stop; do not attempt a real intake.
-5. **Deploy the Render application** by merging the reviewed PR only after steps 1–4 are approved. Render is configured for automatic deployment from `main`; do not trigger a duplicate manual deploy.
-6. **Run non-mutating live checks.** Verify the public intake page, health endpoint, unauthenticated POST rejection, and the admin-only key-pair diagnostic. The pull-request workflow intentionally skips the Render live-endpoint smoke test.
+   Confirm the function definitions, service-role-only execute grants, and migration records are present afterward. Do not create synthetic claim rows as a migration test.
+3. **Deploy the Edge Function** `asset-nav-b2b-debt-intake-v1` from the exact reviewed PR head. Confirm the deployed version includes canonical signature validation, compatibility with existing replay hashes, JSON status lookup, and the service-role-only status RPC. Run only non-mutating checks at this stage.
+4. **Merge the reviewed application PR to `main`.** This is the Render deployment trigger. Render auto-deploys commits to `main`; do not trigger a duplicate manual deploy. Wait for the new deployment to become live and confirm its commit SHA.
+5. **Verify the Render bridge key pair without submitting intake.** Sign in as an authorized application administrator and use **Verify bridge signing key**. It must report a match. A mismatch is a hard stop; do not attempt an intake. This check is necessarily post-deployment because the diagnostic is part of the reviewed application change.
+6. **Run non-mutating live checks.** Verify the public intake page, health endpoint, unauthenticated POST rejection, admin-only key-pair diagnostic, and status lookup for a nonexistent key (must return `found:false`). Confirm no claim/document/audit rows were created by these probes.
 7. **Run a separately authorized synthetic intake test** only after the live configuration checks pass. Use a clearly synthetic document and authorized test identities. Confirm one claim, one private object, one document metadata link, correct SHA-256, and audit evidence. Retry with the same key and exact payload; confirm the same claim/document IDs and no duplicate records. Confirm a changed payload with the same key is rejected. Do not infer recognized or available funds from intake acceptance.
 8. **Test interrupted recovery.** With the same synthetic idempotency key, confirm status lookup after a simulated lost response. If the claim exists but its document link is missing, retry only with the exact original metadata and original file. Never generate a new key to hide an ambiguous outcome.
 
