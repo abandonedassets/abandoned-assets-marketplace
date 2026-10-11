@@ -1,0 +1,31 @@
+name: B2B intake checks
+
+on:
+  pull_request:
+    branches: [production]
+    paths:
+      - "src/routes/api/private/b2b-intake.ts"
+      - "src/routes/_authenticated/admin.b2b-intake.tsx"
+      - "src/components/AdminNav.tsx"
+      - ".github/workflows/b2b-intake-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Type-check application
+        run: bunx tsc --noEmit
+      - name: Lint intake files
+        run: bunx eslint src/routes/api/private/b2b-intake.ts src/routes/_authenticated/admin.b2b-intake.tsx src/components/AdminNav.tsx
