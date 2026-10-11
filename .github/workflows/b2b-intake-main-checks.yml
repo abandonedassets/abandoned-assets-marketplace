@@ -9,7 +9,6 @@ on:
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
       - "nitro.config.ts"
-      - "server/api/public/hooks/mercury-webhook-bridge.ts"
       - ".github/workflows/b2b-intake-main-checks.yml"
   pull_request:
     branches: [main]
@@ -60,7 +59,14 @@ jobs:
             cat /tmp/nitro.log
             exit 1
           fi
+          health_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/health.json --write-out '%{http_code}' 'http://127.0.0.1:3000/api/public/health')"
+          test "$health_status" = "200"
+          mercury_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/mercury.json --write-out '%{http_code}' 'http://127.0.0.1:3000/api/public/hooks/mercury-webhook')"
+          test "$mercury_status" = "200"
+          grep -q 'mercury-webhook-relay' /tmp/mercury.json
           grep -q 'B2B Corporate Debt Intake' /tmp/b2b-page.html
           api_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/b2b-api.json --write-out '%{http_code}' --request POST 'http://127.0.0.1:3000/api/private/b2b-intake' --header 'Content-Type: multipart/form-data; boundary=smoke' --data-binary 'x')"
           test "$api_status" = "401"
           grep -q '"error":"AUTHENTICATION_REQUIRED"' /tmp/b2b-api.json
+          stripe_status="$(curl --connect-timeout 1 --max-time 2 --silent --show-error --output /tmp/stripe.json --write-out '%{http_code}' --request POST 'http://127.0.0.1:3000/api/public/hooks/stripe-settlement' --header 'Content-Type: application/json' --data-binary '{}')"
+          test "$stripe_status" = "404"
