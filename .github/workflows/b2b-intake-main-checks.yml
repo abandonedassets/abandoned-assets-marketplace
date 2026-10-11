@@ -144,22 +144,37 @@ jobs:
         run: |
           set -eu
           get_status() {
-            curl --connect-timeout 3 --max-time 10 --silent --show-error --output "$2" --write-out '%{http_code}' "$1"
+            curl --connect-timeout 3 --max-time 8 --silent --show-error --output "$2" --write-out '%{http_code}' "$1" || true
           }
-          page_status="$(get_status "$RENDER_BASE_URL/api/public/b2b-intake-page" /tmp/live-b2b-page.html)"
-          echo "Live intake page: HTTP $page_status"
-          test "$page_status" = "200"
+          wait_for_status() {
+            url="$1"
+            output="$2"
+            expected="$3"
+            label="$4"
+            status="000"
+            # Render auto-deploys asynchronously after the same main push that
+            # starts this workflow. Retry during the rolling deploy instead of
+            # treating the old instance / brief no-response window as a failure.
+            for attempt in $(seq 1 24); do
+              status="$(get_status "$url" "$output")"
+              echo "$label attempt $attempt: HTTP $status"
+              if [ "$status" = "$expected" ]; then return 0; fi
+              sleep 5
+            done
+            echo "$label never reached expected HTTP $expected (last status $status)"
+            return 1
+          }
+          wait_for_status "$RENDER_BASE_URL/api/public/b2b-intake-page" /tmp/live-b2b-page.html "200" "Live intake page"
+          page_status="200"
           grep -q 'B2B Corporate Debt Intake' /tmp/live-b2b-page.html
           if ! grep -Eq 'const CONFIG = \{"url":"https://[^"]+","key":"[^"]+"\};' /tmp/live-b2b-page.html; then
             echo "Live intake page is missing its application Supabase URL or public key."
             exit 1
           fi
-          health_status="$(get_status "$RENDER_BASE_URL/api/public/health" /tmp/live-health.json)"
-          echo "Live health: HTTP $health_status"
-          test "$health_status" = "200"
-          mercury_status="$(get_status "$RENDER_BASE_URL/api/public/hooks/mercury-webhook" /tmp/live-mercury.json)"
-          echo "Live Mercury GET probe: HTTP $mercury_status"
-          test "$mercury_status" = "200"
+          wait_for_status "$RENDER_BASE_URL/api/public/health" /tmp/live-health.json "200" "Live health"
+          health_status="200"
+          wait_for_status "$RENDER_BASE_URL/api/public/hooks/mercury-webhook" /tmp/live-mercury.json "200" "Live Mercury GET probe"
+          mercury_status="200"
           grep -q 'mercury-webhook-relay' /tmp/live-mercury.json
           intake_status="000"
           for attempt in $(seq 1 36); do
