@@ -1,7 +1,32 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 const TARGET = "https://midneoocykeoquxkjkrg.supabase.co/functions/v1/asset-nav-b2b-debt-intake-v1";
+const TARGET_API_KEY = "sb_publishable_wH2in1zbqd1jNggdbNT5iQ_1BiDXzLd";
+const TARGET_FUNCTION_SLUG = "asset-nav-b2b-debt-intake-v1";
 const MAX_BYTES = 16 * 1024 * 1024;
+
+function decodeBase64(value: string): Uint8Array {
+  return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+}
+
+function encodeBase64(value: Uint8Array): string {
+  let binary = "";
+  for (const byte of value) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function toHex(value: Uint8Array): string {
+  return [...value].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function signBridgeBody(body: Uint8Array, privateKeyB64: string) {
+  const digest = toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", body)));
+  const timestamp = String(Date.now());
+  const message = new TextEncoder().encode(["v1", timestamp, "POST", TARGET_FUNCTION_SLUG, digest].join("\\n"));
+  const privateKey = await crypto.subtle.importKey("pkcs8", decodeBase64(privateKeyB64), { name: "Ed25519" }, false, ["sign"]);
+  const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, message));
+  return { digest, timestamp, signature: encodeBase64(signature) };
+}
 
 async function readLimitedBody(request: Request): Promise<Uint8Array | null> {
   if (!request.body) return null;
@@ -42,7 +67,8 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
         const token = auth.slice(7);
         const appUrl = process.env.SUPABASE_URL;
         const appKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        if (!appUrl || !appKey) {
+        const bridgePrivateKey = process.env.B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64;
+        if (!appUrl || !appKey || !bridgePrivateKey) {
           return Response.json({ error: "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE" }, { status: 503, headers: { "Cache-Control": "no-store" } });
         }
         const contentType = request.headers.get("content-type") ?? "";
@@ -83,13 +109,17 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
           if (!rawBody) {
             return Response.json({ error: "REQUEST_SIZE_LIMIT_EXCEEDED_OR_BODY_MISSING" }, { status: 413, headers: { "Cache-Control": "no-store" } });
           }
+          const signed = await signBridgeBody(rawBody, bridgePrivateKey);
           const upstream = await fetch(TARGET, {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${token}`,
-              apikey: appKey,
+              Authorization: "Bearer b2b-bridge-v1",
+              apikey: TARGET_API_KEY,
               "content-type": contentType,
               "content-length": String(rawBody.byteLength),
+              "x-b2b-timestamp": signed.timestamp,
+              "x-b2b-body-sha256": signed.digest,
+              "x-b2b-signature": signed.signature,
             },
             body: rawBody,
             cache: "no-store",
