@@ -8,6 +8,7 @@ on:
       - "server/api/public/b2b-intake-page.get.ts"
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
+      - "package.json"
       - "nitro.config.ts"
       - "disabled-server-routes/**"
       - "server/api/public/hooks/mercury-webhook.post.ts"
@@ -20,6 +21,7 @@ on:
       - "server/api/public/b2b-intake-page.get.ts"
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
+      - "package.json"
       - ".github/workflows/b2b-intake-main-checks.yml"
 
 permissions:
@@ -39,8 +41,34 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+      - name: Regenerate lockfile for reviewed dependency overrides
+        run: npm install --package-lock-only --ignore-scripts --no-audit
       - name: Install locked dependencies
         run: npm ci
+      - name: Verify critical proxy-addr fix
+        run: node -e "const p=require('./node_modules/proxy-addr/package.json'); console.log('proxy-addr installed:', p.version); if (p.version !== '2.0.8') process.exit(1)"
+      - name: Report dependency vulnerabilities
+        continue-on-error: true
+        run: |
+          set +e
+          npm audit --json > /tmp/npm-audit.json
+          audit_status=$?
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const report = JSON.parse(fs.readFileSync('/tmp/npm-audit.json', 'utf8'));
+          console.log('npm audit severity totals:', JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+          for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+            console.log(JSON.stringify({package:name,severity:item.severity,direct:item.isDirect,range:item.range,fixAvailable:item.fixAvailable,via:item.via.map(v=>typeof v==='string'?v:{name:v.name,title:v.title,url:v.url})}));
+          }
+          NODE
+          echo "npm audit exit status: $audit_status"
+      - name: Preserve generated lockfile for review
+        uses: actions/upload-artifact@v4
+        with:
+          name: proxy-addr-remediation-lockfile
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Build current Render/Nitro application
         run: npm run build
       - name: Verify unreviewed webhook handlers are not bundled
