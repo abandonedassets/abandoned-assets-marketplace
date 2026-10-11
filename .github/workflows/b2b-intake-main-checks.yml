@@ -50,7 +50,7 @@ jobs:
       - name: Smoke-test explicitly registered Nitro routes locally
         run: |
           SUPABASE_URL='https://example.supabase.co' \
-          SUPABASE_SERVICE_ROLE_KEY='ci-dummy-key' \
+          VITE_SUPABASE_ANON_KEY='ci-dummy-anon-key' \
           B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64='ZHVtbXk=' \
           PORT=3000 node .output/server/index.mjs > /tmp/nitro.log 2>&1 &
           server_pid=$!
