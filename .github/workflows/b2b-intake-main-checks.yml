@@ -16,7 +16,6 @@ on:
       - "server/api/public/hooks/mercury-webhook.post.ts"
       - "server/api/public/hooks/stripe-settlement.post.ts"
       - ".github/workflows/b2b-intake-main-checks.yml"
-      - ".github/workflows/dependency-remediation.yml"
   pull_request:
     branches: [main]
     paths:
@@ -25,7 +24,6 @@ on:
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
       - ".github/workflows/b2b-intake-main-checks.yml"
-      - ".github/workflows/dependency-remediation.yml"
       - ".github/dependabot.yml"
 
 permissions:
