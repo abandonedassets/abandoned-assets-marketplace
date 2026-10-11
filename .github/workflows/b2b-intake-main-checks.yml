@@ -41,8 +41,10 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-      - name: Regenerate lockfile for reviewed dependency overrides
-        run: npm install --package-lock-only --ignore-scripts --no-audit
+      - name: Verify committed lockfile is reproducible
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit
+          git diff --exit-code -- package-lock.json
       - name: Install locked dependencies
         run: npm ci
       - name: Verify critical proxy-addr fix
@@ -62,13 +64,6 @@ jobs:
           }
           NODE
           echo "npm audit exit status: $audit_status"
-      - name: Preserve generated lockfile for review
-        uses: actions/upload-artifact@v4
-        with:
-          name: proxy-addr-remediation-lockfile
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 3
       - name: Build current Render/Nitro application
         run: npm run build
       - name: Verify unreviewed webhook handlers are not bundled
