@@ -8,6 +8,7 @@ on:
       - "server/api/public/b2b-intake-page.get.ts"
       - "server/client/src/pages/Home.tsx"
       - "package-lock.json"
+      - "package.json"
       - "nitro.config.ts"
       - "disabled-server-routes/**"
       - "server/api/public/hooks/mercury-webhook.post.ts"
