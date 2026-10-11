@@ -60,10 +60,14 @@ export default defineEventHandler(async (event) => {
     return jsonError(event, 405, "METHOD_NOT_ALLOWED");
   }
 
-  const appUrl = process.env.SUPABASE_URL;
-  const appServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const appUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const appAnonKey =
+    process.env.SUPABASE_ANON_KEY ??
+    process.env.VITE_SUPABASE_ANON_KEY ??
+    process.env.SUPABASE_PUBLISHABLE_KEY ??
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const bridgePrivateKey = process.env.B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64;
-  if (!appUrl || !appServiceKey || !bridgePrivateKey) {
+  if (!appUrl || !appAnonKey || !bridgePrivateKey) {
     return jsonError(event, 503, "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE");
   }
 
@@ -71,10 +75,11 @@ export default defineEventHandler(async (event) => {
   const match = /^Bearer\s+(.+)$/i.exec(authorization);
   if (!match?.[1]) return jsonError(event, 401, "AUTHENTICATION_REQUIRED");
 
-  const appClient = createClient(appUrl, appServiceKey, {
+  const appClient = createClient(appUrl, appAnonKey, {
+    global: { headers: { Authorization: `Bearer ${match[1]}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: userData, error: userError } = await appClient.auth.getUser(match[1]);
+  const { data: userData, error: userError } = await appClient.auth.getUser();
   if (userError || !userData.user) {
     return jsonError(event, 401, "INVALID_USER_TOKEN");
   }
