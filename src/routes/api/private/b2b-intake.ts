@@ -19,12 +19,18 @@ function toHex(value: Uint8Array): string {
   return [...value].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+function asArrayBuffer(value: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(value.byteLength);
+  copy.set(value);
+  return copy.buffer;
+}
+
 async function signBridgeBody(body: Uint8Array, privateKeyB64: string) {
-  const digest = toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", body)));
+  const digest = toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", asArrayBuffer(body))));
   const timestamp = String(Date.now());
   const message = new TextEncoder().encode(["v1", timestamp, "POST", TARGET_FUNCTION_SLUG, digest].join("\n"));
-  const privateKey = await crypto.subtle.importKey("pkcs8", decodeBase64(privateKeyB64), { name: "Ed25519" }, false, ["sign"]);
-  const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, message));
+  const privateKey = await crypto.subtle.importKey("pkcs8", asArrayBuffer(decodeBase64(privateKeyB64)), { name: "Ed25519" }, false, ["sign"]);
+  const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, asArrayBuffer(message)));
   return { digest, timestamp, signature: encodeBase64(signature) };
 }
 
@@ -121,7 +127,7 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
               "x-b2b-body-sha256": signed.digest,
               "x-b2b-signature": signed.signature,
             },
-            body: rawBody,
+            body: asArrayBuffer(rawBody),
             cache: "no-store",
             signal: AbortSignal.timeout(30_000),
           });
