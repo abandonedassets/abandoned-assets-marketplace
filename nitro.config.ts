@@ -14,6 +14,22 @@ export default defineNitroConfig({
     '/api/public/hooks/mercury-webhook': {
       cors: true,
       headers: { 'Content-Type': 'application/json' }
+    },
+    '/api/public/b2b-intake-page': {
+      cors: true,
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY'
+      }
+    },
+    '/api/private/b2b-intake': {
+      cors: false,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store'
+      }
     }
   },
 
