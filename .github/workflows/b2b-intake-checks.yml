@@ -40,6 +40,8 @@ jobs:
           bun-version: latest
       - name: Install locked dependencies
         run: bun install --frozen-lockfile
+      - name: Generate TanStack route tree
+        run: bunx vite build --mode development
       - name: Type-check application
         run: bunx tsc --noEmit
       - name: Lint intake files
