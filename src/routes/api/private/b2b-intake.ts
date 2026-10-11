@@ -28,9 +28,19 @@ function asArrayBuffer(value: Uint8Array): ArrayBuffer {
 async function signBridgeBody(body: Uint8Array, privateKeyB64: string) {
   const digest = toHex(new Uint8Array(await crypto.subtle.digest("SHA-256", asArrayBuffer(body))));
   const timestamp = String(Date.now());
-  const message = new TextEncoder().encode(["v1", timestamp, "POST", TARGET_FUNCTION_SLUG, digest].join("\n"));
-  const privateKey = await crypto.subtle.importKey("pkcs8", asArrayBuffer(decodeBase64(privateKeyB64)), { name: "Ed25519" }, false, ["sign"]);
-  const signature = new Uint8Array(await crypto.subtle.sign("Ed25519", privateKey, asArrayBuffer(message)));
+  const message = new TextEncoder().encode(
+    ["v1", timestamp, "POST", TARGET_FUNCTION_SLUG, digest].join("\n"),
+  );
+  const privateKey = await crypto.subtle.importKey(
+    "pkcs8",
+    asArrayBuffer(decodeBase64(privateKeyB64)),
+    { name: "Ed25519" },
+    false,
+    ["sign"],
+  );
+  const signature = new Uint8Array(
+    await crypto.subtle.sign("Ed25519", privateKey, asArrayBuffer(message)),
+  );
   return { digest, timestamp, signature: encodeBase64(signature) };
 }
 
@@ -68,27 +78,43 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
       POST: async ({ request }) => {
         const auth = request.headers.get("authorization") ?? "";
         if (!auth.startsWith("Bearer ") || auth.length < 16) {
-          return Response.json({ error: "AUTHENTICATION_REQUIRED" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+          return Response.json(
+            { error: "AUTHENTICATION_REQUIRED" },
+            { status: 401, headers: { "Cache-Control": "no-store" } },
+          );
         }
         const token = auth.slice(7);
         const appUrl = process.env.SUPABASE_URL;
-        const appKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const appKey =
+          process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         const bridgePrivateKey = process.env.B2B_INTAKE_BRIDGE_PRIVATE_KEY_B64;
         if (!appUrl || !appKey || !bridgePrivateKey) {
-          return Response.json({ error: "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE" }, { status: 503, headers: { "Cache-Control": "no-store" } });
+          return Response.json(
+            { error: "B2B_INTAKE_BRIDGE_CONFIGURATION_INCOMPLETE" },
+            { status: 503, headers: { "Cache-Control": "no-store" } },
+          );
         }
         const contentType = request.headers.get("content-type") ?? "";
         if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
-          return Response.json({ error: "MULTIPART_FORM_DATA_REQUIRED" }, { status: 415, headers: { "Cache-Control": "no-store" } });
+          return Response.json(
+            { error: "MULTIPART_FORM_DATA_REQUIRED" },
+            { status: 415, headers: { "Cache-Control": "no-store" } },
+          );
         }
         const lengthHeader = request.headers.get("content-length");
         if (lengthHeader !== null) {
           const length = Number(lengthHeader);
           if (!Number.isSafeInteger(length) || length < 1) {
-            return Response.json({ error: "INVALID_CONTENT_LENGTH" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+            return Response.json(
+              { error: "INVALID_CONTENT_LENGTH" },
+              { status: 400, headers: { "Cache-Control": "no-store" } },
+            );
           }
           if (length > MAX_BYTES) {
-            return Response.json({ error: "REQUEST_SIZE_LIMIT_EXCEEDED" }, { status: 413, headers: { "Cache-Control": "no-store" } });
+            return Response.json(
+              { error: "REQUEST_SIZE_LIMIT_EXCEEDED" },
+              { status: 413, headers: { "Cache-Control": "no-store" } },
+            );
           }
         }
 
@@ -101,19 +127,28 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
           const { data: claimsData, error: claimsError } = await appClient.auth.getClaims(token);
           const userId = claimsData?.claims?.sub;
           if (claimsError || typeof userId !== "string" || !userId) {
-            return Response.json({ error: "INVALID_USER_TOKEN" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+            return Response.json(
+              { error: "INVALID_USER_TOKEN" },
+              { status: 401, headers: { "Cache-Control": "no-store" } },
+            );
           }
           const { data: isAdmin, error: roleError } = await appClient.rpc("has_role", {
             _user_id: userId,
             _role: "admin",
           });
           if (roleError || isAdmin !== true) {
-            return Response.json({ error: "ADMIN_ROLE_REQUIRED" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+            return Response.json(
+              { error: "ADMIN_ROLE_REQUIRED" },
+              { status: 403, headers: { "Cache-Control": "no-store" } },
+            );
           }
 
           const rawBody = await readLimitedBody(request);
           if (!rawBody) {
-            return Response.json({ error: "REQUEST_SIZE_LIMIT_EXCEEDED_OR_BODY_MISSING" }, { status: 413, headers: { "Cache-Control": "no-store" } });
+            return Response.json(
+              { error: "REQUEST_SIZE_LIMIT_EXCEEDED_OR_BODY_MISSING" },
+              { status: 413, headers: { "Cache-Control": "no-store" } },
+            );
           }
           const signed = await signBridgeBody(rawBody, bridgePrivateKey);
           const upstream = await fetch(TARGET, {
@@ -139,7 +174,10 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
             },
           });
         } catch {
-          return Response.json({ error: "B2B_INTAKE_UPSTREAM_UNAVAILABLE" }, { status: 502, headers: { "Cache-Control": "no-store" } });
+          return Response.json(
+            { error: "B2B_INTAKE_UPSTREAM_UNAVAILABLE" },
+            { status: 502, headers: { "Cache-Control": "no-store" } },
+          );
         }
       },
     },
