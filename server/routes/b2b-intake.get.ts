@@ -233,7 +233,7 @@ async function submitIntake(event) {
   } catch (error) {
     showStatus(error instanceof Error ? error.message : "INTAKE_FAILED", "error");
   } finally {
-    byId("submit-button").disabled = false;
+    byId("submit-button").disabled = successfulSubmission;
   }
 }
 byId("login-form").addEventListener("submit", signIn);
