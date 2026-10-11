@@ -8,7 +8,6 @@ export default defineNitroConfig({
   // Scan the existing server directory, but keep the Stripe settlement handler
   // excluded until its authorization and live webhook configuration are reviewed.
   scanDirs: ["./server"],
-  ignore: ["api/public/hooks/stripe-settlement.post.ts"],
 
   routeRules: {
     "/api/public/health": {
