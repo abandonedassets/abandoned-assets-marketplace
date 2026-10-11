@@ -99,7 +99,16 @@ function B2BDebtIntakePage() {
         _user_id: userData.user.id,
         _role: "admin",
       });
-      if (active) setAuthorization(!roleError && isAdmin === true ? "allowed" : "denied");
+      if (active) {
+        setAuthorization(!roleError && isAdmin === true ? "allowed" : "denied");
+        if (!roleError && isAdmin === true) {
+          const pendingKey = readStoredIdempotencyKey(userData.user.id);
+          if (pendingKey) {
+            setIdempotencyKey(pendingKey);
+            setIdempotencyOwner(userData.user.id);
+          }
+        }
+      }
     }
     void verifyAdminAccess();
     return () => {
@@ -217,6 +226,11 @@ function B2BDebtIntakePage() {
         <div className="rounded-md border border-amber-500/50 bg-amber-500/5 p-4 text-sm">
           <strong>Recognition boundary:</strong> a successful submission records a claim for review. Recognized amount and available funds remain $0 until separately supported and authorized.
         </div>
+        {idempotencyKey && (
+          <div role="status" className="rounded-md border border-border p-3 text-sm">
+            A previous submission may have reached the server. Retry the same metadata and the same original file to safely resolve its outcome. The retry key is retained; starting a new claim is disabled until a confirmed success.
+          </div>
+        )}
 
         <form onSubmit={submit} className="space-y-5 rounded-lg border border-border p-4 md:p-6">
           <section className="grid gap-4 md:grid-cols-2">
@@ -266,12 +280,12 @@ function B2BDebtIntakePage() {
             <button disabled={busy || Boolean(result)} type="submit" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
               {busy ? "Submitting and verifying…" : "Submit claim for review"}
             </button>
-            <button disabled={busy} type="button" onClick={() => {
+            <button disabled={busy || Boolean(idempotencyKey)} type="button" onClick={() => {
               setCreditorEin(""); setDebtorEin(""); setFaceValue(""); setTerms("NET-30"); setMaturity("");
               setAssignmentClause(false); setAssignmentRef(""); setProvenance(""); setDocument(null); setFileInputKey((key) => key + 1);
-              setIdempotencyKey(""); setIdempotencyOwner(""); clearStoredIdempotencyKey(); setResult(null); setError("");
+              setResult(null); setError("");
             }} className="rounded-md border border-border px-4 py-2 text-sm disabled:opacity-50">
-              Clear form / start new claim
+              {idempotencyKey ? "Retry pending submission first" : "Clear form / start new claim"}
             </button>
           </div>
         </form>
