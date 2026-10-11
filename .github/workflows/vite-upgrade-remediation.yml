@@ -1,0 +1,77 @@
+name: Validate compatible Vite security upgrade
+
+on:
+  push:
+    branches:
+      - "chore/vite-6-upgrade-remediation"
+    paths:
+      - ".github/workflows/vite-upgrade-remediation.yml"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: vite-6-security-upgrade
+  cancel-in-progress: false
+
+jobs:
+  prepare-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout tested compatible-remediation baseline
+        uses: actions/checkout@v4
+        with:
+          ref: security/npm-audit-fix-reviewed
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install baseline lockfile
+        run: npm ci
+
+      - name: Upgrade Vite to patched 6.x without force
+        run: npm install vite@6.4.4 --save-exact
+
+      - name: Verify reproducible clean install
+        run: npm ci
+
+      - name: Verify production build
+        run: npm run build
+
+      - name: Report audit results
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > /tmp/npm-audit-vite.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const report = JSON.parse(fs.readFileSync('/tmp/npm-audit-vite.json', 'utf8'));
+          console.log('Vite-upgrade audit totals:', JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+          for (const [name, item] of Object.entries(report.vulnerabilities ?? {})) {
+            console.log(JSON.stringify({package:name,severity:item.severity,direct:item.isDirect,fixAvailable:item.fixAvailable}));
+          }
+          NODE
+          exit 0
+
+      - name: Open stacked PR only after install and build pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet -- package.json package-lock.json && {
+            echo "No Vite upgrade changes produced; nothing to propose."
+            exit 0
+          }
+          git switch -c security/vite-6-upgrade
+          git add package.json package-lock.json
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix: upgrade Vite to patched 6.x'
+          git push origin security/vite-6-upgrade
+          gh pr create --repo "$REPOSITORY" --base security/npm-audit-fix-reviewed --head security/vite-6-upgrade --title 'fix: upgrade Vite to patched 6.x' --body 'Stacked dependency remediation: upgrade Vite to 6.4.4 without force. A clean npm ci and production build must pass before merge. Audit results are in the workflow log; unresolved upstream advisories remain separate. This PR does not deploy or merge itself.'
