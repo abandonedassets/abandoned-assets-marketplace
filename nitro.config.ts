@@ -1,56 +1,48 @@
-import { defineNitroConfig } from 'nitropack/config';
+import { defineNitroConfig } from "nitropack/config";
 
 export default defineNitroConfig({
-  // 1. FORCE THE PATH MAPPING TO BYPASS STATIC FILE SERVING
-  routes: {
-    '/api/public/health': { 
-      cors: true,
-      headers: { 'Content-Type': 'application/json' }
-    },
-    '/api/public/hooks/stripe-settlement': { 
-      cors: true,
-      headers: { 'Content-Type': 'application/json' }
-    },
-    '/api/public/hooks/mercury-webhook': {
-      cors: true,
-      headers: { 'Content-Type': 'application/json' }
-    },
-    '/api/public/b2b-intake-page': {
-      cors: true,
-      headers: {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY'
-      }
-    },
-    '/api/private/b2b-intake': {
-      cors: false,
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-store'
-      }
-    }
-  },
-
-  // 2. DISABLE STATIC CLIENT COMPILATION LOOKUPS
+  preset: process.env.NITRO_PRESET || "node-server",
   serveStatic: false,
 
-  // 3. SECURE CONTAINER RUNTIME SETTINGS
-  devServer: {
-    host: '0.0.0.0',
-    port: 10000
+  // Explicit registration keeps the intended API surface small. Do not set
+  // serverDir to scan every file under server/api: that would also activate
+  // the unreviewed Stripe settlement webhook in this legacy runtime.
+  routes: {
+    "/api/public/health": {
+      handler: "./server/api/public/health.get.ts",
+      method: "GET",
+    },
+    "/api/public/hooks/mercury-webhook": {
+      handler: "./server/api/public/hooks/mercury-webhook-bridge.ts",
+    },
+    "/api/public/b2b-intake-page": {
+      handler: "./server/api/public/b2b-intake-page.get.ts",
+      method: "GET",
+    },
+    "/api/private/b2b-intake": {
+      handler: "./server/api/private/b2b-intake.post.ts",
+      method: "POST",
+    },
   },
 
-  // 4. RUNTIME CONFIG FOR SECRETS
-  runtimeConfig: {
-    supabaseUrl: process.env.SUPABASE_URL,
-    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
-    stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET
+  routeRules: {
+    "/api/public/health": {
+      cors: true,
+      headers: { "cache-control": "no-store" },
+    },
+    "/api/public/hooks/mercury-webhook": {
+      cors: true,
+      headers: { "cache-control": "no-store" },
+    },
+    "/api/public/b2b-intake-page": {
+      headers: {
+        "cache-control": "no-store",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+      },
+    },
+    "/api/private/b2b-intake": {
+      headers: { "cache-control": "no-store" },
+    },
   },
-
-  // 5. PRODUCTION HARDENING
-  preset: 'node-server',
-  noAnalyze: true,
 });
