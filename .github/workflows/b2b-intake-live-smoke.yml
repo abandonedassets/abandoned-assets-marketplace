@@ -19,8 +19,9 @@ jobs:
           cat /tmp/b2b-health.json || true
       - name: Verify intake page is live
         run: |
-          for attempt in $(seq 1 20); do
+          for attempt in $(seq 1 6); do
             status="$(curl --connect-timeout 5 --max-time 10 --silent --show-error --output /tmp/b2b-page.html --write-out '%{http_code}' 'https://abandoned-assets-marketplace.onrender.com/api/public/b2b-intake-page' || true)"
+            echo "Page attempt $attempt HTTP status: $status"
             if [ "$status" = "200" ] && grep -q 'B2B Corporate Debt Intake' /tmp/b2b-page.html; then
               echo "Intake page returned HTTP 200."
               break
