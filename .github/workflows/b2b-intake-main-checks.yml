@@ -89,6 +89,10 @@ jobs:
           echo "Live intake page: HTTP $page_status"
           test "$page_status" = "200"
           grep -q 'B2B Corporate Debt Intake' /tmp/live-b2b-page.html
+          if ! grep -Eq 'const CONFIG = \{"url":"https://[^"]+","key":"[^"]+"\};' /tmp/live-b2b-page.html; then
+            echo "Live intake page is missing its application Supabase URL or public key."
+            exit 1
+          fi
           health_status="$(get_status "$RENDER_BASE_URL/api/public/health" /tmp/live-health.json)"
           echo "Live health: HTTP $health_status"
           test "$health_status" = "200"
