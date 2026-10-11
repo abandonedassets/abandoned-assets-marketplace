@@ -97,6 +97,9 @@ function B2BDebtIntakePage() {
         const detail = body.field ? `${body.error ?? "INTAKE_FAILED"} (${body.field})` : body.error ?? `HTTP_${response.status}`;
         throw new Error(detail);
       }
+      if (typeof body.claim_id !== "string" || !body.claim_id || typeof body.document_sha256 !== "string" || !/^[0-9a-f]{64}$/.test(body.document_sha256)) {
+        throw new Error("INTAKE_RESPONSE_INCOMPLETE_RETRY_SAME_IDEMPOTENCY_KEY");
+      }
       setResult(body);
       setIdempotencyKey("");
     } catch (e) {
@@ -166,7 +169,7 @@ function B2BDebtIntakePage() {
           </label>
 
           <div className="flex flex-wrap gap-3">
-            <button disabled={busy} type="submit" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+            <button disabled={busy || Boolean(result)} type="submit" className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
               {busy ? "Submitting and verifying…" : "Submit claim for review"}
             </button>
             <button disabled={busy} type="button" onClick={() => {
