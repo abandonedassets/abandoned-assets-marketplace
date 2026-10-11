@@ -36,7 +36,16 @@ jobs:
         run: npm ci
 
       - name: Apply compatible audit fixes only
-        run: npm audit fix
+        shell: bash
+        run: |
+          set +e
+          npm audit fix
+          fix_status=$?
+          set -e
+          echo "npm audit fix exit status: $fix_status"
+          if git diff --quiet -- package-lock.json; then
+            echo "No compatible lockfile changes were produced."
+          fi
 
       - name: Verify reproducible clean install
         run: npm ci
