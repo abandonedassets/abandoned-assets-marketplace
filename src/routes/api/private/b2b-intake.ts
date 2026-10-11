@@ -50,9 +50,15 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
         if (!contentType.toLowerCase().startsWith("multipart/form-data;")) {
           return Response.json({ error: "MULTIPART_FORM_DATA_REQUIRED" }, { status: 415, headers: { "Cache-Control": "no-store" } });
         }
-        const length = Number(request.headers.get("content-length") ?? 0);
-        if (length > MAX_BYTES) {
-          return Response.json({ error: "REQUEST_SIZE_LIMIT_EXCEEDED" }, { status: 413, headers: { "Cache-Control": "no-store" } });
+        const lengthHeader = request.headers.get("content-length");
+        if (lengthHeader !== null) {
+          const length = Number(lengthHeader);
+          if (!Number.isSafeInteger(length) || length < 0) {
+            return Response.json({ error: "INVALID_CONTENT_LENGTH" }, { status: 400, headers: { "Cache-Control": "no-store" } });
+          }
+          if (length > MAX_BYTES) {
+            return Response.json({ error: "REQUEST_SIZE_LIMIT_EXCEEDED" }, { status: 413, headers: { "Cache-Control": "no-store" } });
+          }
         }
 
         try {
@@ -84,6 +90,7 @@ export const Route = createFileRoute("/api/private/b2b-intake")({
               Authorization: `Bearer ${bridgeKey}`,
               apikey: bridgeKey,
               "content-type": contentType,
+              "content-length": String(rawBody.byteLength),
             },
             body: rawBody,
             cache: "no-store",
