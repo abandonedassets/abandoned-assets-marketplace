@@ -56,13 +56,7 @@ export function AdminNav() {
       >
         B2B Debt Intake
       </Link>
-      <Link
-        to="/admin/source-vault"
-        className="hover:text-foreground"
-        activeProps={{ className: "text-foreground" }}
-      >
-        REEL Edge Source Vault
-      </Link>
+
       <Link
         to="/admin/system-ledger"
         className="hover:text-foreground"
