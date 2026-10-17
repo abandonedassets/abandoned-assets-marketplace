@@ -56,10 +56,6 @@ function SourceVaultIntakePage() {
       if (localHash !== EXPECTED_SHA256) throw new Error("SHA-256 mismatch. Nothing uploaded.");
       const { data: session, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session.session?.access_token) throw new Error("Authenticated session missing. Sign in again.");
-      const { data: config } = await supabase.functions.invoke(FUNCTION_SLUG, {
-        body: null,
-      }).catch(() => ({ data: null }));
-      void config;
       const url = import.meta.env.VITE_SUPABASE_URL;
       const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       if (!url || !key) throw new Error("Supabase client configuration missing.");
